@@ -1,0 +1,205 @@
+<template>
+  <div>
+    <h2 class="text-lg font-semibold text-gray-900 mb-2">Foto dell'articolo</h2>
+    <p class="text-gray-500 mb-6">Carica da 1 a 6 foto. La prima sarà l'immagine di copertina.</p>
+
+    <!-- Drop zone -->
+    <div
+      class="border-2 border-dashed rounded-xl p-8 text-center transition-colors"
+      :class="[
+        isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-gray-400',
+        hasError ? 'border-red-300 bg-red-50' : '',
+      ]"
+      role="button"
+      tabindex="0"
+      :aria-label="dropzoneLabel"
+      :aria-describedby="hasError ? 'photo-error' : undefined"
+      @dragover.prevent="isDragging = true"
+      @dragleave.prevent="isDragging = false"
+      @drop.prevent="handleDrop"
+      @click="openFilePicker"
+      @keydown.enter="openFilePicker"
+      @keydown.space.prevent="openFilePicker"
+    >
+      <input
+        ref="fileInput"
+        type="file"
+        accept="image/*"
+        multiple
+        class="hidden"
+        aria-hidden="true"
+        @change="handleFileSelect"
+      />
+
+      <div class="flex flex-col items-center">
+        <div
+          class="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+          :class="isDragging ? 'bg-primary-100' : 'bg-gray-100'"
+          aria-hidden="true"
+        >
+          <svg
+            class="w-8 h-8"
+            :class="isDragging ? 'text-primary-600' : 'text-gray-400'"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+
+        <p class="text-gray-700 font-medium mb-1">
+          {{ isDragging ? 'Rilascia le foto qui' : 'Trascina le foto qui' }}
+        </p>
+        <p class="text-gray-500 text-sm">oppure clicca per selezionarle</p>
+        <p class="text-gray-400 text-xs mt-2">{{ formData.photos.length }}/6 foto caricate</p>
+      </div>
+    </div>
+
+    <!-- Error message -->
+    <p v-if="hasError" id="photo-error" class="mt-2 text-sm text-red-600" role="alert">
+      {{ stepValidation.errors.photos }}
+    </p>
+
+    <!-- Photo previews -->
+    <div v-if="formData.photos.length > 0" class="mt-6">
+      <h3 class="text-sm font-medium text-gray-700 mb-3">
+        Foto caricate
+        <span class="text-gray-400 font-normal">(trascina per riordinare)</span>
+      </h3>
+
+      <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        <div
+          v-for="(photo, index) in photosPreviews"
+          :key="index"
+          class="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group"
+          :class="{ 'ring-2 ring-primary-500 ring-offset-2': index === 0 }"
+          draggable="true"
+          :aria-label="`Foto ${index + 1}${index === 0 ? ' (copertina)' : ''}: ${photo.name}`"
+          @dragstart="handleDragStart(index, $event)"
+          @dragover.prevent="handleDragOver(index)"
+          @drop.prevent="handlePhotoDrop(index)"
+        >
+          <img
+            :src="photo.url"
+            :alt="`Foto ${index + 1}`"
+            class="w-full h-full object-cover"
+          />
+
+          <!-- Cover badge -->
+          <span
+            v-if="index === 0"
+            class="absolute top-1 left-1 bg-primary-600 text-white text-xs px-2 py-0.5 rounded"
+            aria-hidden="true"
+          >
+            Copertina
+          </span>
+
+          <!-- Remove button -->
+          <button
+            type="button"
+            class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            :aria-label="`Rimuovi foto ${index + 1}`"
+            @click.stop="removePhoto(index)"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <!-- Drag handle overlay -->
+          <div
+            class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-colors cursor-grab active:cursor-grabbing"
+            aria-hidden="true"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useListingForm } from '~/composables/useListingForm'
+
+const { formData, stepValidation, addPhoto, removePhoto, reorderPhotos } = useListingForm()
+
+const fileInput = ref<HTMLInputElement | null>(null)
+const isDragging = ref(false)
+const draggedIndex = ref<number | null>(null)
+
+const hasError = computed(() => !!stepValidation.value.errors.photos)
+
+const dropzoneLabel = computed(() => {
+  if (formData.value.photos.length >= 6) {
+    return 'Limite massimo di 6 foto raggiunto'
+  }
+  return 'Clicca o trascina le foto per caricarle. Minimo 1, massimo 6 foto.'
+})
+
+const photosPreviews = computed(() => {
+  return formData.value.photos.map((file) => ({
+    url: URL.createObjectURL(file),
+    name: file.name,
+  }))
+})
+
+const openFilePicker = () => {
+  if (formData.value.photos.length < 6) {
+    fileInput.value?.click()
+  }
+}
+
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files) {
+    addPhotosFromFileList(target.files)
+    target.value = '' // Reset input to allow re-selecting same files
+  }
+}
+
+const handleDrop = (event: DragEvent) => {
+  isDragging.value = false
+  if (event.dataTransfer?.files) {
+    addPhotosFromFileList(event.dataTransfer.files)
+  }
+}
+
+const addPhotosFromFileList = (files: FileList) => {
+  const remaining = 6 - formData.value.photos.length
+  const filesToAdd = Array.from(files)
+    .filter((file) => file.type.startsWith('image/'))
+    .slice(0, remaining)
+
+  filesToAdd.forEach((file) => addPhoto(file))
+}
+
+const handleDragStart = (index: number, event: DragEvent) => {
+  draggedIndex.value = index
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+  }
+}
+
+const handleDragOver = (_index: number) => {
+  // Visual feedback could be added here
+}
+
+const handlePhotoDrop = (targetIndex: number) => {
+  if (draggedIndex.value !== null && draggedIndex.value !== targetIndex) {
+    reorderPhotos(draggedIndex.value, targetIndex)
+  }
+  draggedIndex.value = null
+}
+
+// Clean up object URLs when component unmounts
+onUnmounted(() => {
+  photosPreviews.value.forEach((preview) => {
+    URL.revokeObjectURL(preview.url)
+  })
+})
+</script>

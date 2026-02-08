@@ -54,9 +54,12 @@
 </template>
 
 <script setup lang="ts">
+type Platform = 'EBAY' | 'VINTED' | 'SUBITO' | 'FACEBOOK_MARKETPLACE'
+type PublicationStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
+
 interface Publication {
-  platformName: string
-  status: string
+  platformName: Platform
+  status: PublicationStatus
 }
 
 interface Listing {

@@ -81,8 +81,26 @@
 </template>
 
 <script setup lang="ts">
+type Platform = 'EBAY' | 'VINTED' | 'SUBITO' | 'FACEBOOK_MARKETPLACE'
+type PublicationStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
+
+interface Publication {
+  platformName: Platform
+  status: PublicationStatus
+}
+
+interface Listing {
+  id: string
+  title: string
+  price: number
+  currency: string
+  status: string
+  images: string[]
+  publications: Publication[]
+}
+
 // Mock data for demonstration
-const mockListings = [
+const mockListings: Listing[] = [
   {
     id: '1',
     title: 'iPhone 13 Pro 256GB',
