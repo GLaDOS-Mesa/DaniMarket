@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  name                 String?
+  platformCredentials  Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  listings             Listing[]
+}
+
+model Listing {
+  id           String                @id @default(cuid())
+  userId       String
+  title        String
+  description  String?
+  price        Decimal               @db.Decimal(10, 2)
+  currency     String                @default("EUR")
+  category     Category
+  condition    Condition
+  shippingInfo Json?
+  images       String[]
+  status       ListingStatus         @default(DRAFT)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publications PlatformPublication[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model PlatformPublication {
+  id                   String            @id @default(cuid())
+  listingId            String
+  platformName         Platform
+  platformListingId    String?
+  status               PublicationStatus @default(PENDING)
+  platformSpecificData Json?
+  errorMessage         String?
+  publishedAt          DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  listing              Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, platformName])
+  @@index([platformName])
+  @@index([status])
+}
+
+enum Category {
+  ELECTRONICS
+  CLOTHING
+  HOME
+  SPORTS
+  BOOKS
+  TOYS
+  VEHICLES
+  OTHER
+}
+
+enum Condition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  POOR
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  ARCHIVED
+}
+
+enum Platform {
+  EBAY
+  VINTED
+  SUBITO
+  FACEBOOK_MARKETPLACE
+}
+
+enum PublicationStatus {
+  PENDING
+  PUBLISHED
+  ERROR
+  REMOVED
+}
