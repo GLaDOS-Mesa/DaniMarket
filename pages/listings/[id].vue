@@ -111,6 +111,17 @@
 
           <!-- Right column (1/3 width on desktop) -->
           <div class="space-y-6">
+            <!-- Action Bar -->
+            <ListingsDetailActionBar
+              :status="listing.status"
+              :is-publishing="isPublishing"
+              :is-duplicating="isDuplicating"
+              @edit="handleEdit"
+              @publish="handlePublish"
+              @duplicate="handleDuplicate"
+              @delete="showDeleteModal = true"
+            />
+
             <!-- Platforms Card -->
             <ListingsDetailPlatformStatusSection :publications="listing.publications" />
 
@@ -123,18 +134,45 @@
         </div>
       </main>
     </div>
+
+    <!-- Delete confirmation modal -->
+    <ListingsDetailDeleteConfirmModal
+      :is-open="showDeleteModal"
+      :listing-title="listing?.title || ''"
+      :published-platforms="publishedPlatformNames"
+      :is-deleting="isDeleting"
+      @close="showDeleteModal = false"
+      @confirm="handleDeleteConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Listing } from '~/types/listing'
+import { ListingStatus, PlatformPublicationStatus, platformLabels } from '~/types/listing'
 import { useListingsApi } from '~/composables/useListingsApi'
+import { useToast } from '~/composables/useToast'
 
 const route = useRoute()
-const { getById } = useListingsApi()
+const router = useRouter()
+const { getById, update, remove } = useListingsApi()
+const { success, error } = useToast()
 
+// State
 const listing = ref<Listing | null>(null)
 const isLoading = ref(true)
+const isPublishing = ref(false)
+const isDuplicating = ref(false)
+const isDeleting = ref(false)
+const showDeleteModal = ref(false)
+
+// Computed
+const publishedPlatformNames = computed(() => {
+  if (!listing.value) return []
+  return listing.value.publications
+    .filter(pub => pub.status === PlatformPublicationStatus.PUBLISHED)
+    .map(pub => platformLabels[pub.platform])
+})
 
 // Load listing on mount
 onMounted(async () => {
@@ -148,6 +186,78 @@ onMounted(async () => {
 const handleOpenLightbox = (index: number) => {
   // TODO: Implement lightbox modal in future sprint
   console.log('Open lightbox at index:', index)
+}
+
+// Action handlers
+const handleEdit = () => {
+  // TODO: Implement edit mode in future sprint
+  success('Modalità modifica in arrivo!')
+}
+
+const handlePublish = async () => {
+  if (!listing.value) return
+
+  isPublishing.value = true
+  try {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Update listing status
+    const response = await update(listing.value.id, { status: ListingStatus.ACTIVE })
+    if (response.data) {
+      listing.value = response.data
+      success('Annuncio pubblicato con successo!')
+    }
+  } catch (err) {
+    error('Errore durante la pubblicazione')
+  } finally {
+    isPublishing.value = false
+  }
+}
+
+const handleDuplicate = async () => {
+  if (!listing.value) return
+
+  isDuplicating.value = true
+  try {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800))
+
+    // In real implementation, this would create a new listing
+    success('Annuncio duplicato! Reindirizzamento...')
+
+    // Redirect to new listing (mock: redirect to same page for now)
+    setTimeout(() => {
+      router.push('/')
+    }, 1000)
+  } catch (err) {
+    error('Errore durante la duplicazione')
+  } finally {
+    isDuplicating.value = false
+  }
+}
+
+const handleDeleteConfirm = async () => {
+  if (!listing.value) return
+
+  isDeleting.value = true
+  try {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await remove(listing.value.id)
+    success('Annuncio eliminato con successo')
+
+    // Redirect to dashboard
+    setTimeout(() => {
+      router.push('/')
+    }, 500)
+  } catch (err) {
+    error('Errore durante l\'eliminazione')
+    showDeleteModal.value = false
+  } finally {
+    isDeleting.value = false
+  }
 }
 
 // Page meta
