@@ -85,253 +85,28 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Left column (2/3 width on desktop) -->
           <div class="lg:col-span-2 space-y-6">
-            <!-- Photo Gallery (placeholder for Sprint 3) -->
-            <section
-              class="bg-white rounded-xl shadow-sm p-6"
-              aria-labelledby="gallery-heading"
-            >
-              <h2
-                id="gallery-heading"
-                class="text-lg font-semibold text-gray-900 mb-4"
-              >
-                Foto ({{ listing.images.length }})
-              </h2>
-              <div
-                v-if="listing.images.length"
-                class="space-y-4"
-              >
-                <!-- Main image -->
-                <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                  <img
-                    :src="listing.images[selectedImageIndex]"
-                    :alt="`Foto principale di ${listing.title}`"
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                <!-- Thumbnails -->
-                <div
-                  v-if="listing.images.length > 1"
-                  class="flex gap-2 overflow-x-auto pb-2"
-                >
-                  <button
-                    v-for="(image, index) in listing.images"
-                    :key="index"
-                    type="button"
-                    class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all"
-                    :class="selectedImageIndex === index ? 'ring-2 ring-primary-500 ring-offset-2' : 'opacity-70 hover:opacity-100'"
-                    :aria-label="`Visualizza foto ${index + 1}`"
-                    :aria-current="selectedImageIndex === index ? 'true' : undefined"
-                    @click="selectedImageIndex = index"
-                  >
-                    <img
-                      :src="image"
-                      :alt="`Foto ${index + 1} di ${listing.title}`"
-                      class="w-full h-full object-cover"
-                    />
-                  </button>
-                </div>
-              </div>
-              <div
-                v-else
-                class="aspect-square rounded-lg bg-gray-100 flex items-center justify-center"
-              >
-                <div class="text-center text-gray-400">
-                  <svg
-                    class="w-16 h-16 mx-auto mb-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <p>Nessuna foto</p>
-                </div>
-              </div>
-            </section>
+            <!-- Photo Gallery -->
+            <ListingsDetailListingGallery
+              :images="listing.images"
+              :title="listing.title"
+              @open-lightbox="handleOpenLightbox"
+            />
 
             <!-- Basic Info Card -->
-            <section
-              class="bg-white rounded-xl shadow-sm p-6"
-              aria-labelledby="info-heading"
-            >
-              <h2
-                id="info-heading"
-                class="text-lg font-semibold text-gray-900 mb-4"
-              >
-                Informazioni
-              </h2>
-              <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="flex flex-col">
-                  <dt class="text-sm text-gray-500">Categoria</dt>
-                  <dd class="text-gray-900 font-medium">{{ categoryLabel }}</dd>
-                </div>
-                <div class="flex flex-col">
-                  <dt class="text-sm text-gray-500">Condizione</dt>
-                  <dd class="text-gray-900 font-medium">{{ conditionLabel }}</dd>
-                </div>
-                <div
-                  v-if="listing.brand"
-                  class="flex flex-col"
-                >
-                  <dt class="text-sm text-gray-500">Brand</dt>
-                  <dd class="text-gray-900 font-medium">{{ listing.brand }}</dd>
-                </div>
-                <div
-                  v-if="listing.size"
-                  class="flex flex-col"
-                >
-                  <dt class="text-sm text-gray-500">Taglia</dt>
-                  <dd class="text-gray-900 font-medium">{{ listing.size }}</dd>
-                </div>
-                <div
-                  v-if="listing.colors.length"
-                  class="flex flex-col sm:col-span-2"
-                >
-                  <dt class="text-sm text-gray-500 mb-1">Colori</dt>
-                  <dd class="flex flex-wrap gap-2">
-                    <span
-                      v-for="color in listing.colors"
-                      :key="color"
-                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                    >
-                      {{ colorLabels[color] }}
-                    </span>
-                  </dd>
-                </div>
-                <div
-                  v-if="listing.material"
-                  class="flex flex-col"
-                >
-                  <dt class="text-sm text-gray-500">Materiale</dt>
-                  <dd class="text-gray-900 font-medium">{{ listing.material }}</dd>
-                </div>
-              </dl>
-            </section>
+            <ListingsDetailListingBasicInfo :listing="listing" />
 
             <!-- Description Card -->
-            <section
-              class="bg-white rounded-xl shadow-sm p-6"
-              aria-labelledby="description-heading"
-            >
-              <h2
-                id="description-heading"
-                class="text-lg font-semibold text-gray-900 mb-4"
-              >
-                Descrizione
-              </h2>
-              <p class="text-gray-600 whitespace-pre-line leading-relaxed">
-                {{ listing.description }}
-              </p>
-            </section>
+            <ListingsDetailListingDetails :description="listing.description" />
 
             <!-- Shipping Card -->
-            <section
-              class="bg-white rounded-xl shadow-sm p-6"
-              aria-labelledby="shipping-heading"
-            >
-              <h2
-                id="shipping-heading"
-                class="text-lg font-semibold text-gray-900 mb-4"
-              >
-                Spedizione e ritiro
-              </h2>
-              <dl class="space-y-3">
-                <div class="flex items-start gap-3">
-                  <svg
-                    class="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                  <div>
-                    <dt class="text-sm text-gray-500">Località</dt>
-                    <dd class="text-gray-900 font-medium">{{ listing.city }}, {{ listing.province }}</dd>
-                  </div>
-                </div>
-                <div class="flex items-start gap-3">
-                  <svg
-                    class="w-5 h-5 mt-0.5 flex-shrink-0"
-                    :class="listing.shippingAvailable ? 'text-green-500' : 'text-gray-400'"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      v-if="listing.shippingAvailable"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M5 13l4 4L19 7"
-                    />
-                    <path
-                      v-else
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                  <div>
-                    <dt class="text-sm text-gray-500">Spedizione</dt>
-                    <dd class="text-gray-900 font-medium">
-                      <template v-if="listing.shippingAvailable">
-                        Disponibile
-                        <span v-if="listing.shippingCost" class="text-gray-500">
-                          ({{ formattedShippingCost }})
-                        </span>
-                      </template>
-                      <template v-else>
-                        Solo ritiro in zona
-                      </template>
-                    </dd>
-                  </div>
-                </div>
-                <div
-                  v-if="listing.shippingAvailable && listing.packageSize"
-                  class="flex items-start gap-3"
-                >
-                  <svg
-                    class="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                    />
-                  </svg>
-                  <div>
-                    <dt class="text-sm text-gray-500">Dimensione pacco</dt>
-                    <dd class="text-gray-900 font-medium">{{ packageSizeLabels[listing.packageSize] }}</dd>
-                  </div>
-                </div>
-              </dl>
-            </section>
+            <ListingsDetailListingShipping
+              :city="listing.city"
+              :province="listing.province"
+              :shipping-available="listing.shippingAvailable"
+              :shipping-cost="listing.shippingCost"
+              :package-size="listing.packageSize"
+              :currency="listing.currency"
+            />
           </div>
 
           <!-- Right column (1/3 width on desktop) -->
@@ -462,11 +237,7 @@ import {
   Platform,
   PlatformPublicationStatus,
   publicationStatusLabels,
-  categoryLabels,
-  conditionLabels,
-  colorLabels,
   platformLabels,
-  packageSizeLabels,
   activityActionIcons,
 } from '~/types/listing'
 import type { Listing } from '~/types/listing'
@@ -481,7 +252,6 @@ const { getById } = useListingsApi()
 
 const listing = ref<Listing | null>(null)
 const isLoading = ref(true)
-const selectedImageIndex = ref(0)
 
 // Load listing on mount
 onMounted(async () => {
@@ -491,24 +261,11 @@ onMounted(async () => {
   isLoading.value = false
 })
 
-// Computed values
-const categoryLabel = computed(() => {
-  if (!listing.value) return ''
-  return categoryLabels[listing.value.category]
-})
-
-const conditionLabel = computed(() => {
-  if (!listing.value) return ''
-  return conditionLabels[listing.value.condition]
-})
-
-const formattedShippingCost = computed(() => {
-  if (!listing.value?.shippingCost) return ''
-  return new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: listing.value.currency || 'EUR',
-  }).format(listing.value.shippingCost)
-})
+// Lightbox handler (placeholder for future implementation)
+const handleOpenLightbox = (index: number) => {
+  // TODO: Implement lightbox modal in future sprint
+  console.log('Open lightbox at index:', index)
+}
 
 // Platform logo mappings
 const mapPlatformToLogo = (platform: Platform): LogoPlatform => {
