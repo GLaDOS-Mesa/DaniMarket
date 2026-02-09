@@ -209,8 +209,8 @@ const handleSaveDraft = async () => {
   isSaving.value = true
 
   try {
-    // TODO: Save listing to database as draft
-    // await saveListing({ status: 'DRAFT' })
+    // TODO: Save listing to database with status DRAFT
+    // await createListing({ status: ListingStatus.DRAFT })
 
     // On success: show toast, reset form and navigate to home
     toast.success('Bozza salvata con successo! Potrai completarla in seguito.')
@@ -230,8 +230,8 @@ const handlePublish = async () => {
   isSaving.value = true
 
   try {
-    // TODO: Save listing to database as published
-    // await saveListing({ status: 'PUBLISHED' })
+    // TODO: Save listing to database with status ACTIVE and create platform publications
+    // await createListing({ status: ListingStatus.ACTIVE })
 
     // On success: show toast, reset form and navigate to home
     toast.success('Annuncio pubblicato con successo! Sarà presto visibile sulle piattaforme selezionate.')
