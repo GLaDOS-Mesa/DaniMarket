@@ -112,119 +112,13 @@
           <!-- Right column (1/3 width on desktop) -->
           <div class="space-y-6">
             <!-- Platforms Card -->
-            <section
-              class="bg-white rounded-xl shadow-sm p-6"
-              aria-labelledby="platforms-heading"
-            >
-              <h2
-                id="platforms-heading"
-                class="text-lg font-semibold text-gray-900 mb-4"
-              >
-                Piattaforme
-              </h2>
-              <ul
-                v-if="listing.publications.length"
-                class="space-y-3"
-              >
-                <li
-                  v-for="pub in listing.publications"
-                  :key="pub.id"
-                  class="flex items-center justify-between p-3 rounded-lg bg-gray-50"
-                >
-                  <div class="flex items-center gap-3">
-                    <PlatformLogo
-                      :platform="mapPlatformToLogo(pub.platform)"
-                      :status="mapPublicationStatusToLogo(pub.status)"
-                      size="sm"
-                    />
-                    <span class="font-medium text-gray-900">{{ platformLabels[pub.platform] }}</span>
-                  </div>
-                  <span
-                    class="px-2.5 py-1 rounded-full text-xs font-medium"
-                    :class="publicationStatusClasses(pub.status)"
-                  >
-                    {{ publicationStatusLabels[pub.status] }}
-                  </span>
-                </li>
-              </ul>
-              <p
-                v-else
-                class="text-gray-500 text-sm"
-              >
-                Nessuna piattaforma selezionata
-              </p>
-            </section>
+            <ListingsDetailPlatformStatusSection :publications="listing.publications" />
 
-            <!-- Stats placeholder (Sprint 5) -->
-            <section
-              class="bg-white rounded-xl shadow-sm p-6"
-              aria-labelledby="stats-heading"
-            >
-              <h2
-                id="stats-heading"
-                class="text-lg font-semibold text-gray-900 mb-4"
-              >
-                Statistiche
-              </h2>
-              <div class="grid grid-cols-2 gap-4">
-                <div class="text-center p-3 bg-gray-50 rounded-lg">
-                  <p class="text-2xl font-bold text-gray-900">{{ listing.stats.totalViews ?? '—' }}</p>
-                  <p class="text-xs text-gray-500">Visualizzazioni</p>
-                </div>
-                <div class="text-center p-3 bg-gray-50 rounded-lg">
-                  <p class="text-2xl font-bold text-gray-900">{{ listing.stats.favorites ?? '—' }}</p>
-                  <p class="text-xs text-gray-500">Preferiti</p>
-                </div>
-                <div class="text-center p-3 bg-gray-50 rounded-lg">
-                  <p class="text-2xl font-bold text-gray-900">{{ listing.stats.messages ?? '—' }}</p>
-                  <p class="text-xs text-gray-500">Messaggi</p>
-                </div>
-                <div class="text-center p-3 bg-gray-50 rounded-lg">
-                  <p class="text-2xl font-bold text-gray-900">{{ listing.stats.daysOnline ?? '—' }}</p>
-                  <p class="text-xs text-gray-500">Giorni online</p>
-                </div>
-              </div>
-            </section>
+            <!-- Stats Card -->
+            <ListingsDetailStatsOverview :stats="listing.stats" />
 
-            <!-- Activity Log placeholder (Sprint 5) -->
-            <section
-              class="bg-white rounded-xl shadow-sm p-6"
-              aria-labelledby="activity-heading"
-            >
-              <h2
-                id="activity-heading"
-                class="text-lg font-semibold text-gray-900 mb-4"
-              >
-                Attività recenti
-              </h2>
-              <ul
-                v-if="listing.activityLog.length"
-                class="space-y-3"
-              >
-                <li
-                  v-for="activity in listing.activityLog.slice(0, 5)"
-                  :key="activity.id"
-                  class="flex items-start gap-3 text-sm"
-                >
-                  <span
-                    class="flex-shrink-0 text-lg"
-                    aria-hidden="true"
-                  >
-                    {{ activityActionIcons[activity.action] }}
-                  </span>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-gray-900">{{ activity.description }}</p>
-                    <p class="text-gray-500 text-xs">{{ formatRelativeDate(activity.timestamp) }}</p>
-                  </div>
-                </li>
-              </ul>
-              <p
-                v-else
-                class="text-gray-500 text-sm"
-              >
-                Nessuna attività registrata
-              </p>
-            </section>
+            <!-- Activity Timeline -->
+            <ListingsDetailActivityTimeline :activities="listing.activityLog" />
           </div>
         </div>
       </main>
@@ -233,19 +127,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-  Platform,
-  PlatformPublicationStatus,
-  publicationStatusLabels,
-  platformLabels,
-  activityActionIcons,
-} from '~/types/listing'
 import type { Listing } from '~/types/listing'
 import { useListingsApi } from '~/composables/useListingsApi'
-
-// PlatformLogo type mappings
-type LogoPlatform = 'EBAY' | 'VINTED' | 'SUBITO' | 'FACEBOOK_MARKETPLACE'
-type LogoStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
 
 const route = useRoute()
 const { getById } = useListingsApi()
@@ -265,56 +148,6 @@ onMounted(async () => {
 const handleOpenLightbox = (index: number) => {
   // TODO: Implement lightbox modal in future sprint
   console.log('Open lightbox at index:', index)
-}
-
-// Platform logo mappings
-const mapPlatformToLogo = (platform: Platform): LogoPlatform => {
-  const mapping: Record<Platform, LogoPlatform> = {
-    [Platform.EBAY]: 'EBAY',
-    [Platform.VINTED]: 'VINTED',
-    [Platform.SUBITO]: 'SUBITO',
-    [Platform.FACEBOOK]: 'FACEBOOK_MARKETPLACE',
-  }
-  return mapping[platform]
-}
-
-const mapPublicationStatusToLogo = (status: PlatformPublicationStatus): LogoStatus => {
-  const mapping: Record<PlatformPublicationStatus, LogoStatus> = {
-    [PlatformPublicationStatus.DRAFT]: 'PENDING',
-    [PlatformPublicationStatus.PUBLISHED]: 'PUBLISHED',
-    [PlatformPublicationStatus.ERROR]: 'ERROR',
-    [PlatformPublicationStatus.REMOVED]: 'REMOVED',
-  }
-  return mapping[status]
-}
-
-const publicationStatusClasses = (status: PlatformPublicationStatus): string => {
-  const classes: Record<PlatformPublicationStatus, string> = {
-    [PlatformPublicationStatus.DRAFT]: 'bg-gray-100 text-gray-700',
-    [PlatformPublicationStatus.PUBLISHED]: 'bg-green-100 text-green-700',
-    [PlatformPublicationStatus.ERROR]: 'bg-red-100 text-red-700',
-    [PlatformPublicationStatus.REMOVED]: 'bg-orange-100 text-orange-700',
-  }
-  return classes[status]
-}
-
-// Date formatting
-const formatRelativeDate = (date: Date): string => {
-  const now = new Date()
-  const then = new Date(date)
-  const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000)
-
-  if (diffInSeconds < 60) return 'Adesso'
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min fa`
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ore fa`
-  if (diffInSeconds < 172800) return 'Ieri'
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} giorni fa`
-
-  return new Intl.DateTimeFormat('it-IT', {
-    day: 'numeric',
-    month: 'short',
-    year: then.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-  }).format(then)
 }
 
 // Page meta
