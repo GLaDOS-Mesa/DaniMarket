@@ -1,7 +1,33 @@
 <template>
   <div>
     <h2 class="text-lg font-semibold text-gray-900 mb-2">Foto dell'articolo</h2>
-    <p class="text-gray-500 mb-6">Carica da 1 a 6 foto. La prima sarà l'immagine di copertina.</p>
+    <p class="text-gray-500 mb-4">Carica da 1 a 6 foto. La prima sarà l'immagine di copertina.</p>
+
+    <!-- Duplicate warning -->
+    <div
+      v-if="isDuplicating"
+      class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3"
+      role="alert"
+    >
+      <svg
+        class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+        />
+      </svg>
+      <div>
+        <p class="text-amber-800 font-medium">Le foto non vengono copiate</p>
+        <p class="text-amber-700 text-sm mt-1">Carica le foto per il nuovo annuncio.</p>
+      </div>
+    </div>
 
     <!-- Drop zone -->
     <div
@@ -126,7 +152,7 @@
 <script setup lang="ts">
 import { useListingForm } from '~/composables/useListingForm'
 
-const { formData, stepValidation, addPhoto, removePhoto, reorderPhotos } = useListingForm()
+const { formData, stepValidation, isDuplicating, addPhoto, removePhoto, reorderPhotos } = useListingForm()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)

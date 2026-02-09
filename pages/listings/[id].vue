@@ -115,7 +115,6 @@
             <ListingsDetailActionBar
               :status="listing.status"
               :is-publishing="isPublishing"
-              :is-duplicating="isDuplicating"
               @edit="handleEdit"
               @publish="handlePublish"
               @duplicate="handleDuplicate"
@@ -165,7 +164,6 @@ const { success, error } = useToast()
 const listing = ref<Listing | null>(null)
 const isLoading = ref(true)
 const isPublishing = ref(false)
-const isDuplicating = ref(false)
 const isDeleting = ref(false)
 const showDeleteModal = ref(false)
 
@@ -223,26 +221,11 @@ const handlePublish = async () => {
   }
 }
 
-const handleDuplicate = async () => {
+const handleDuplicate = () => {
   if (!listing.value) return
 
-  isDuplicating.value = true
-  try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800))
-
-    // In real implementation, this would create a new listing
-    success('Annuncio duplicato! Reindirizzamento...')
-
-    // Redirect to new listing (mock: redirect to same page for now)
-    setTimeout(() => {
-      router.push('/')
-    }, 1000)
-  } catch (err) {
-    error('Errore durante la duplicazione')
-  } finally {
-    isDuplicating.value = false
-  }
+  success('Annuncio duplicato — completa le foto e i dettagli')
+  router.push(`/listings/new?duplicateFrom=${listing.value.id}`)
 }
 
 const handleDeleteConfirm = async () => {

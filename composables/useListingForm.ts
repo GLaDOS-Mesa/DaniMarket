@@ -1,6 +1,7 @@
 import {
   type ListingFormData,
   type Platform,
+  type Listing,
   platformRequiredFields,
   categoriesRequiringSize,
 } from '~/types/listing'
@@ -16,6 +17,7 @@ interface UseListingFormReturn {
   formData: Ref<ListingFormData>
   currentStep: Ref<number>
   totalSteps: number
+  isDuplicating: Ref<boolean>
   stepValidation: ComputedRef<StepValidation>
   isStepCompleted: (step: number) => boolean
   canGoNext: ComputedRef<boolean>
@@ -32,6 +34,7 @@ interface UseListingFormReturn {
   loadDraft: () => boolean
   clearDraft: () => void
   resetForm: () => void
+  populateFromListing: (listing: Listing) => void
 }
 
 const createInitialFormData = (): ListingFormData => ({
@@ -66,6 +69,7 @@ const createInitialFormData = (): ListingFormData => ({
 const formData = ref<ListingFormData>(createInitialFormData())
 const currentStep = ref(1)
 const totalSteps = 5
+const isDuplicating = ref(false)
 
 // Validation functions that use the shared state
 const validateStep1 = (): StepValidation => {
@@ -319,13 +323,39 @@ export const useListingForm = (): UseListingFormReturn => {
   const resetForm = () => {
     formData.value = createInitialFormData()
     currentStep.value = 1
+    isDuplicating.value = false
     clearDraft()
+  }
+
+  const populateFromListing = (listing: Listing) => {
+    // Populate form with listing data, excluding id, status, photos, publications, activityLog, stats, dates
+    formData.value = {
+      photos: [], // Photos must be re-uploaded
+      title: `Copia di — ${listing.title}`,
+      description: listing.description,
+      price: listing.price,
+      category: listing.category,
+      condition: listing.condition,
+      brand: listing.brand,
+      size: listing.size,
+      colors: [...listing.colors],
+      material: listing.material,
+      city: listing.city,
+      province: listing.province,
+      shippingAvailable: listing.shippingAvailable,
+      packageSize: listing.packageSize,
+      shippingCost: listing.shippingCost,
+      platforms: [...listing.platforms],
+    }
+    currentStep.value = 1 // Start from Step 1 (Photos)
+    isDuplicating.value = true
   }
 
   return {
     formData,
     currentStep,
     totalSteps,
+    isDuplicating,
     stepValidation,
     isStepCompleted,
     canGoNext,
@@ -342,5 +372,6 @@ export const useListingForm = (): UseListingFormReturn => {
     loadDraft,
     clearDraft,
     resetForm,
+    populateFromListing,
   }
 }

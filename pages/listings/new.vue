@@ -152,7 +152,11 @@
 
 <script setup lang="ts">
 import { useListingForm } from '~/composables/useListingForm'
+import { useListingsApi } from '~/composables/useListingsApi'
 import { useToast } from '~/composables/useToast'
+
+const route = useRoute()
+const { getById } = useListingsApi()
 
 const {
   currentStep,
@@ -165,11 +169,23 @@ const {
   nextStep,
   prevStep,
   resetForm,
+  populateFromListing,
 } = useListingForm()
 
 const toast = useToast()
 
 const isSaving = ref(false)
+
+// Handle duplicate from existing listing
+onMounted(async () => {
+  const duplicateFromId = route.query.duplicateFrom as string | undefined
+  if (duplicateFromId) {
+    const response = await getById(duplicateFromId)
+    if (response.data) {
+      populateFromListing(response.data)
+    }
+  }
+})
 
 const steps = [
   { id: 1, label: 'Foto', icon: '📸' },
