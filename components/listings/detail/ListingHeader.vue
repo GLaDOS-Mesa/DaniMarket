@@ -1,26 +1,44 @@
 <template>
   <header class="mb-6">
-    <!-- Back link -->
-    <NuxtLink
-      to="/"
-      class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-4 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-lg px-2 py-1 -ml-2 transition-colors"
+    <!-- Breadcrumb -->
+    <nav
+      class="mb-4"
+      aria-label="Breadcrumb"
     >
-      <svg
-        class="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M10 19l-7-7m0 0l7-7m-7 7h18"
-        />
-      </svg>
-      <span>Torna alla dashboard</span>
-    </NuxtLink>
+      <ol class="flex items-center gap-2 text-sm">
+        <li>
+          <NuxtLink
+            to="/"
+            class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded transition-colors"
+          >
+            Dashboard
+          </NuxtLink>
+        </li>
+        <li aria-hidden="true">
+          <svg
+            class="w-4 h-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </li>
+        <li>
+          <span
+            class="text-gray-900 font-medium truncate max-w-[200px] sm:max-w-[300px] inline-block"
+            aria-current="page"
+          >
+            {{ listing.title }}
+          </span>
+        </li>
+      </ol>
+    </nav>
 
     <!-- Title and status -->
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
