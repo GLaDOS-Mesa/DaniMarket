@@ -147,7 +147,7 @@ const {
   goToStep,
   nextStep,
   prevStep,
-  saveDraft,
+  resetForm,
 } = useListingForm()
 
 const steps = [
@@ -184,14 +184,22 @@ const getStepStatus = (stepId: number): string => {
   return 'da completare'
 }
 
-const handleSaveDraft = () => {
-  saveDraft()
+const handleSaveDraft = async () => {
+  // TODO: Save listing to database as draft
+  // await saveListing({ status: 'DRAFT' })
+
+  // Clear the draft and reset form when exiting the wizard
+  resetForm()
   navigateTo('/')
 }
 
-const handlePublish = () => {
+const handlePublish = async () => {
   if (canGoNext.value) {
-    saveDraft()
+    // TODO: Save listing to database as published
+    // await saveListing({ status: 'PUBLISHED' })
+
+    // Clear the draft and reset form on successful publish
+    resetForm()
     navigateTo('/')
   }
 }
