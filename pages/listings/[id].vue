@@ -123,7 +123,10 @@
             />
 
             <!-- Platforms Card -->
-            <ListingsDetailPlatformStatusSection :publications="listing.publications" />
+            <ListingsDetailPlatformStatusSection
+              :publications="listing.publications"
+              @add-platform="handleAddPlatform"
+            />
 
             <!-- Stats Card -->
             <ListingsDetailStatsOverview :stats="listing.stats" />
@@ -192,6 +195,11 @@ const handleOpenLightbox = (index: number) => {
 const handleEdit = () => {
   // TODO: Implement edit mode in future sprint
   success('Modalità modifica in arrivo!')
+}
+
+const handleAddPlatform = () => {
+  // TODO: Implement platform selection modal in future sprint
+  success('Selezione piattaforma in arrivo!')
 }
 
 const handlePublish = async () => {
