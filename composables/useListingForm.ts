@@ -170,18 +170,19 @@ const validateStep = (step: number): StepValidation => {
   }
 }
 
-const isStepCompleted = (step: number): boolean => {
-  return validateStep(step).isValid
-}
-
-// Check if all previous steps are completed
-const areAllPreviousStepsCompleted = (upToStep: number): boolean => {
+// Check if all steps up to (but not including) the given step are valid
+const areAllPreviousStepsValid = (upToStep: number): boolean => {
   for (let i = 1; i < upToStep; i++) {
-    if (!isStepCompleted(i)) {
+    if (!validateStep(i).isValid) {
       return false
     }
   }
   return true
+}
+
+const isStepCompleted = (step: number): boolean => {
+  // A step is only completed if all previous steps are valid AND this step is valid
+  return areAllPreviousStepsValid(step) && validateStep(step).isValid
 }
 
 export const useListingForm = (): UseListingFormReturn => {
@@ -196,7 +197,7 @@ export const useListingForm = (): UseListingFormReturn => {
     // Can always go back
     if (step <= currentStep.value) return true
     // Can only go forward if all previous steps are completed
-    return areAllPreviousStepsCompleted(step)
+    return areAllPreviousStepsValid(step)
   }
 
   const goToStep = (step: number) => {
