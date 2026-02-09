@@ -40,12 +40,12 @@
       </p>
 
       <!-- Platform indicators -->
-      <div class="flex gap-1.5 mt-3">
+      <div v-if="listing.publications?.length" class="flex gap-1.5 mt-3">
         <PlatformLogo
           v-for="pub in listing.publications"
-          :key="pub.platformName"
-          :platform="pub.platformName"
-          :status="pub.status"
+          :key="pub.platform"
+          :platform="mapPlatformToLogo(pub.platform)"
+          :status="mapStatusToLogo(pub.status)"
           size="sm"
         />
       </div>
@@ -54,51 +54,51 @@
 </template>
 
 <script setup lang="ts">
-type Platform = 'EBAY' | 'VINTED' | 'SUBITO' | 'FACEBOOK_MARKETPLACE'
-type PublicationStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
+import type { Listing } from '~/types/listing'
+import { listingStatusLabels, ListingStatus, Platform, PlatformPublicationStatus } from '~/types/listing'
 
-interface Publication {
-  platformName: Platform
-  status: PublicationStatus
-}
-
-interface Listing {
-  id: string
-  title: string
-  price: number
-  currency: string
-  status: string
-  images?: string[]
-  publications?: Publication[]
-}
+// PlatformLogo expects uppercase values, our enums use lowercase
+type LogoPlatform = 'EBAY' | 'VINTED' | 'SUBITO' | 'FACEBOOK_MARKETPLACE'
+type LogoStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
 
 const props = defineProps<{
   listing: Listing
 }>()
 
-const statusClasses = computed(() => {
-  switch (props.listing.status) {
-    case 'ACTIVE':
-      return 'bg-green-100 text-green-800'
-    case 'DRAFT':
-      return 'bg-gray-100 text-gray-800'
-    case 'SOLD':
-      return 'bg-blue-100 text-blue-800'
-    case 'ARCHIVED':
-      return 'bg-yellow-100 text-yellow-800'
-    default:
-      return 'bg-gray-100 text-gray-800'
+// Map our Platform enum to PlatformLogo expected values
+const mapPlatformToLogo = (platform: Platform): LogoPlatform => {
+  const mapping: Record<Platform, LogoPlatform> = {
+    [Platform.EBAY]: 'EBAY',
+    [Platform.VINTED]: 'VINTED',
+    [Platform.SUBITO]: 'SUBITO',
+    [Platform.FACEBOOK]: 'FACEBOOK_MARKETPLACE',
   }
+  return mapping[platform]
+}
+
+// Map our PlatformPublicationStatus enum to PlatformLogo expected values
+const mapStatusToLogo = (status: PlatformPublicationStatus): LogoStatus => {
+  const mapping: Record<PlatformPublicationStatus, LogoStatus> = {
+    [PlatformPublicationStatus.DRAFT]: 'PENDING',
+    [PlatformPublicationStatus.PUBLISHED]: 'PUBLISHED',
+    [PlatformPublicationStatus.ERROR]: 'ERROR',
+    [PlatformPublicationStatus.REMOVED]: 'REMOVED',
+  }
+  return mapping[status]
+}
+
+const statusClasses = computed(() => {
+  const classes: Record<ListingStatus, string> = {
+    [ListingStatus.ACTIVE]: 'bg-green-100 text-green-800',
+    [ListingStatus.DRAFT]: 'bg-gray-100 text-gray-800',
+    [ListingStatus.SOLD]: 'bg-blue-100 text-blue-800',
+    [ListingStatus.ARCHIVED]: 'bg-yellow-100 text-yellow-800',
+  }
+  return classes[props.listing.status] || 'bg-gray-100 text-gray-800'
 })
 
 const statusLabel = computed(() => {
-  const labels: Record<string, string> = {
-    ACTIVE: 'Attivo',
-    DRAFT: 'Bozza',
-    SOLD: 'Venduto',
-    ARCHIVED: 'Archiviato',
-  }
-  return labels[props.listing.status] || props.listing.status
+  return listingStatusLabels[props.listing.status] || props.listing.status
 })
 
 function formatPrice(price: number, currency: string): string {

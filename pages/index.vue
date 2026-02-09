@@ -45,9 +45,25 @@
       </button>
     </div>
 
+    <!-- Loading state -->
+    <div
+      v-if="isLoading"
+      class="flex items-center justify-center py-16"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="text-center">
+        <div
+          class="animate-spin w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-3"
+          aria-hidden="true"
+        />
+        <p class="text-gray-500">Caricamento annunci...</p>
+      </div>
+    </div>
+
     <!-- Listings grid -->
     <div
-      v-if="filteredListings.length"
+      v-else-if="filteredListings.length"
       class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
     >
       <ListingCard v-for="listing in filteredListings" :key="listing.id" :listing="listing" />
@@ -81,99 +97,36 @@
 </template>
 
 <script setup lang="ts">
-type Platform = 'EBAY' | 'VINTED' | 'SUBITO' | 'FACEBOOK_MARKETPLACE'
-type PublicationStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
+import type { Listing } from '~/types/listing'
+import { ListingStatus } from '~/types/listing'
+import { useListingsApi } from '~/composables/useListingsApi'
 
-interface Publication {
-  platformName: Platform
-  status: PublicationStatus
-}
+const { getAll } = useListingsApi()
 
-interface Listing {
-  id: string
-  title: string
-  price: number
-  currency: string
-  status: string
-  images: string[]
-  publications: Publication[]
-}
-
-// Mock data for demonstration
-const mockListings: Listing[] = [
-  {
-    id: '1',
-    title: 'iPhone 13 Pro 256GB',
-    price: 650,
-    currency: 'EUR',
-    status: 'ACTIVE',
-    images: ['https://picsum.photos/seed/iphone/400/400'],
-    publications: [
-      { platformName: 'EBAY', status: 'PUBLISHED' },
-      { platformName: 'VINTED', status: 'PUBLISHED' },
-      { platformName: 'SUBITO', status: 'PENDING' },
-    ],
-  },
-  {
-    id: '2',
-    title: 'MacBook Air M1 2020',
-    price: 850,
-    currency: 'EUR',
-    status: 'ACTIVE',
-    images: ['https://picsum.photos/seed/macbook/400/400'],
-    publications: [
-      { platformName: 'EBAY', status: 'PUBLISHED' },
-      { platformName: 'FACEBOOK_MARKETPLACE', status: 'ERROR' },
-    ],
-  },
-  {
-    id: '3',
-    title: 'Giacca invernale North Face',
-    price: 120,
-    currency: 'EUR',
-    status: 'DRAFT',
-    images: [],
-    publications: [],
-  },
-  {
-    id: '4',
-    title: 'Bicicletta da corsa Bianchi',
-    price: 400,
-    currency: 'EUR',
-    status: 'SOLD',
-    images: ['https://picsum.photos/seed/bike/400/400'],
-    publications: [
-      { platformName: 'SUBITO', status: 'REMOVED' },
-      { platformName: 'FACEBOOK_MARKETPLACE', status: 'REMOVED' },
-    ],
-  },
-  {
-    id: '5',
-    title: 'Console PS5 Digital Edition',
-    price: 380,
-    currency: 'EUR',
-    status: 'ACTIVE',
-    images: ['https://picsum.photos/seed/ps5/400/400'],
-    publications: [
-      { platformName: 'EBAY', status: 'PUBLISHED' },
-      { platformName: 'VINTED', status: 'PUBLISHED' },
-      { platformName: 'SUBITO', status: 'PUBLISHED' },
-      { platformName: 'FACEBOOK_MARKETPLACE', status: 'PUBLISHED' },
-    ],
-  },
-]
-
+// State
+const listings = ref<Listing[]>([])
+const isLoading = ref(true)
 const activeFilter = ref('all')
 
+// Load listings on mount
+onMounted(async () => {
+  const response = await getAll()
+  if (response.data) {
+    listings.value = response.data
+  }
+  isLoading.value = false
+})
+
+// Computed
 const filters = computed(() => [
-  { label: 'Tutti', value: 'all', count: mockListings.length },
-  { label: 'Attivi', value: 'ACTIVE', count: mockListings.filter((l) => l.status === 'ACTIVE').length },
-  { label: 'Bozze', value: 'DRAFT', count: mockListings.filter((l) => l.status === 'DRAFT').length },
-  { label: 'Venduti', value: 'SOLD', count: mockListings.filter((l) => l.status === 'SOLD').length },
+  { label: 'Tutti', value: 'all', count: listings.value.length },
+  { label: 'Attivi', value: ListingStatus.ACTIVE, count: listings.value.filter((l) => l.status === ListingStatus.ACTIVE).length },
+  { label: 'Bozze', value: ListingStatus.DRAFT, count: listings.value.filter((l) => l.status === ListingStatus.DRAFT).length },
+  { label: 'Venduti', value: ListingStatus.SOLD, count: listings.value.filter((l) => l.status === ListingStatus.SOLD).length },
 ])
 
 const filteredListings = computed(() => {
-  if (activeFilter.value === 'all') return mockListings
-  return mockListings.filter((l) => l.status === activeFilter.value)
+  if (activeFilter.value === 'all') return listings.value
+  return listings.value.filter((l) => l.status === activeFilter.value)
 })
 </script>

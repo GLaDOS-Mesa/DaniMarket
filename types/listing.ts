@@ -389,3 +389,143 @@ export interface ItalianCity {
   regione: string
   cap: string[]
 }
+
+// ========== LISTING STATUS ENUMS ==========
+
+export enum ListingStatus {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  SOLD = 'SOLD',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum PlatformPublicationStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ERROR = 'ERROR',
+  REMOVED = 'REMOVED',
+}
+
+export enum ActivityAction {
+  CREATED = 'created',
+  PUBLISHED = 'published',
+  UPDATED = 'updated',
+  REMOVED = 'removed',
+  SOLD = 'sold',
+  DRAFTED = 'drafted',
+  DELETED = 'deleted',
+  PLATFORM_ADDED = 'platform_added',
+  PLATFORM_REMOVED = 'platform_removed',
+}
+
+// ========== LISTING DETAIL INTERFACES ==========
+
+export interface PlatformPublication {
+  id: string
+  platform: Platform
+  status: PlatformPublicationStatus
+  platformListingId: string | null
+  platformListingUrl: string | null
+  publishedAt: Date | null
+  lastError: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ActivityLogEntry {
+  id: string
+  action: ActivityAction
+  description: string
+  platform: Platform | null
+  timestamp: Date
+  metadata: Record<string, unknown> | null
+}
+
+export interface ListingStats {
+  totalViews: number | null
+  favorites: number | null
+  messages: number | null
+  daysOnline: number | null
+}
+
+export interface Listing {
+  id: string
+  // Step 1 — Foto (URLs instead of File objects)
+  images: string[]
+
+  // Step 2 — Info base
+  title: string
+  description: string
+  price: number
+  currency: string
+  category: ListingCategory
+  condition: ListingCondition
+
+  // Step 3 — Dettagli
+  brand: string
+  size: string
+  colors: ListingColor[]
+  material: string
+
+  // Step 4 — Spedizione
+  city: string
+  province: string
+  shippingAvailable: boolean
+  packageSize: PackageSize | null
+  shippingCost: number | null
+
+  // Step 5 — Piattaforme
+  platforms: Platform[]
+
+  // Status & Publications
+  status: ListingStatus
+  publications: PlatformPublication[]
+
+  // Activity & Stats
+  activityLog: ActivityLogEntry[]
+  stats: ListingStats
+
+  // Timestamps
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ========== STATUS LABELS ==========
+
+export const listingStatusLabels: Record<ListingStatus, string> = {
+  [ListingStatus.DRAFT]: 'Bozza',
+  [ListingStatus.ACTIVE]: 'Attivo',
+  [ListingStatus.SOLD]: 'Venduto',
+  [ListingStatus.ARCHIVED]: 'Archiviato',
+}
+
+export const publicationStatusLabels: Record<PlatformPublicationStatus, string> = {
+  [PlatformPublicationStatus.DRAFT]: 'Bozza',
+  [PlatformPublicationStatus.PUBLISHED]: 'Pubblicato',
+  [PlatformPublicationStatus.ERROR]: 'Errore',
+  [PlatformPublicationStatus.REMOVED]: 'Rimosso',
+}
+
+export const activityActionLabels: Record<ActivityAction, string> = {
+  [ActivityAction.CREATED]: 'Annuncio creato',
+  [ActivityAction.PUBLISHED]: 'Pubblicato',
+  [ActivityAction.UPDATED]: 'Aggiornato',
+  [ActivityAction.REMOVED]: 'Rimosso',
+  [ActivityAction.SOLD]: 'Venduto',
+  [ActivityAction.DRAFTED]: 'Salvato come bozza',
+  [ActivityAction.DELETED]: 'Eliminato',
+  [ActivityAction.PLATFORM_ADDED]: 'Piattaforma aggiunta',
+  [ActivityAction.PLATFORM_REMOVED]: 'Piattaforma rimossa',
+}
+
+export const activityActionIcons: Record<ActivityAction, string> = {
+  [ActivityAction.CREATED]: '✏️',
+  [ActivityAction.PUBLISHED]: '🚀',
+  [ActivityAction.UPDATED]: '📝',
+  [ActivityAction.REMOVED]: '🗑️',
+  [ActivityAction.SOLD]: '💰',
+  [ActivityAction.DRAFTED]: '📋',
+  [ActivityAction.DELETED]: '❌',
+  [ActivityAction.PLATFORM_ADDED]: '➕',
+  [ActivityAction.PLATFORM_REMOVED]: '➖',
+}
