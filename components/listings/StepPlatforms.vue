@@ -134,7 +134,8 @@ const getFieldLabel = (field: string): string => {
     condition: 'condizioni',
     brand: 'marca',
     size: 'taglia',
-    location: 'località',
+    city: 'comune',
+    province: 'provincia',
   }
   return labels[field] || field
 }

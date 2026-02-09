@@ -4,28 +4,100 @@
     <p class="text-gray-500 mb-6">Indica dove si trova l'articolo e le opzioni di spedizione.</p>
 
     <div class="space-y-6">
-      <!-- Location -->
-      <div>
-        <label for="location" class="block text-sm font-medium text-gray-700 mb-1">
-          Località <span class="text-red-500" aria-hidden="true">*</span>
-        </label>
-        <input
-          id="location"
-          v-model="formData.location"
-          type="text"
-          class="w-full px-4 py-2.5 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          :class="errors.location ? 'border-red-300 bg-red-50' : 'border-gray-300'"
-          placeholder="es. Milano, 20121"
-          :aria-invalid="!!errors.location"
-          :aria-describedby="errors.location ? 'location-error' : 'location-hint'"
-          @blur="touchField('location')"
-        />
-        <p v-if="errors.location" id="location-error" class="mt-1 text-sm text-red-600" role="alert">
-          {{ errors.location }}
-        </p>
-        <p v-else id="location-hint" class="mt-1 text-sm text-gray-500">
-          Inserisci la città o il CAP
-        </p>
+      <!-- Comune with autocomplete -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div class="relative">
+          <label for="city" class="block text-sm font-medium text-gray-700 mb-1">
+            Comune <span class="text-red-500" aria-hidden="true">*</span>
+          </label>
+          <div class="relative">
+            <input
+              id="city"
+              v-model="cityQuery"
+              type="text"
+              autocomplete="off"
+              class="w-full px-4 py-2.5 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              :class="errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'"
+              placeholder="Inizia a digitare..."
+              :aria-invalid="!!errors.city"
+              :aria-describedby="errors.city ? 'city-error' : 'city-hint'"
+              :aria-expanded="showSuggestions"
+              aria-autocomplete="list"
+              aria-controls="city-suggestions"
+              @focus="onCityFocus"
+              @blur="onCityBlur"
+              @keydown.down.prevent="navigateSuggestions(1)"
+              @keydown.up.prevent="navigateSuggestions(-1)"
+              @keydown.enter.prevent="selectHighlightedCity"
+              @keydown.escape="closeSuggestions"
+            />
+            <span
+              v-if="isLoadingCities"
+              class="absolute right-3 top-1/2 -translate-y-1/2"
+              aria-hidden="true"
+            >
+              <svg class="animate-spin h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            </span>
+          </div>
+
+          <!-- Autocomplete suggestions dropdown -->
+          <Transition name="fade">
+            <ul
+              v-if="showSuggestions && citySuggestions.length > 0"
+              id="city-suggestions"
+              class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto"
+              role="listbox"
+            >
+              <li
+                v-for="(city, index) in citySuggestions"
+                :key="`${city.nome}-${city.sigla}`"
+                class="px-4 py-2.5 cursor-pointer transition-colors"
+                :class="index === highlightedIndex ? 'bg-primary-50 text-primary-700' : 'hover:bg-gray-50'"
+                role="option"
+                :aria-selected="index === highlightedIndex"
+                @mousedown.prevent="selectCity(city)"
+                @mouseenter="highlightedIndex = index"
+              >
+                <span class="font-medium">{{ city.nome }}</span>
+                <span class="text-gray-500"> ({{ city.sigla }}) - {{ city.regione }}</span>
+              </li>
+            </ul>
+          </Transition>
+
+          <p v-if="errors.city" id="city-error" class="mt-1 text-sm text-red-600" role="alert">
+            {{ errors.city }}
+          </p>
+          <p v-else id="city-hint" class="mt-1 text-sm text-gray-500">
+            Cerca il tuo comune
+          </p>
+        </div>
+
+        <!-- Province (auto-filled) -->
+        <div>
+          <label for="province" class="block text-sm font-medium text-gray-700 mb-1">
+            Provincia <span class="text-red-500" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="province"
+            v-model="formData.province"
+            type="text"
+            readonly
+            class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 text-gray-700"
+            :class="errors.province ? 'border-red-300' : 'border-gray-300'"
+            placeholder="Compilato automaticamente"
+            :aria-invalid="!!errors.province"
+            :aria-describedby="errors.province ? 'province-error' : 'province-hint'"
+          />
+          <p v-if="errors.province" id="province-error" class="mt-1 text-sm text-red-600" role="alert">
+            {{ errors.province }}
+          </p>
+          <p v-else id="province-hint" class="mt-1 text-sm text-gray-500">
+            Si compila selezionando il comune
+          </p>
+        </div>
       </div>
 
       <!-- Shipping toggle -->
@@ -168,14 +240,119 @@
 
 <script setup lang="ts">
 import { useListingForm } from '~/composables/useListingForm'
+import { useItalianCities } from '~/composables/useItalianCities'
 import { PackageSize, packageSizeLabels } from '~/types/listing'
+import type { ItalianCity } from '~/types/listing'
 
 const { formData, stepValidation } = useListingForm()
+const { searchCities, isLoading: isLoadingCities } = useItalianCities()
 
 const touchedFields = ref<Set<string>>(new Set())
 
-const touchField = (field: string) => {
-  touchedFields.value.add(field)
+// Autocomplete state
+const cityQuery = ref(formData.value.city)
+const allCities = ref<ItalianCity[]>([]) // All results from API
+const citySuggestions = ref<ItalianCity[]>([]) // Filtered results for display
+const showSuggestions = ref(false)
+const highlightedIndex = ref(-1)
+const hasLoadedCities = ref(false) // Track if API was called
+
+// Watch for external changes to formData.city (e.g., from draft restore)
+watch(() => formData.value.city, (newValue) => {
+  if (newValue !== cityQuery.value) {
+    cityQuery.value = newValue
+  }
+})
+
+// Filter cities locally based on query
+const filterCitiesLocally = (query: string) => {
+  const normalizedQuery = query.toLowerCase().trim()
+  const filtered = allCities.value.filter((city) =>
+    city.nome.toLowerCase().includes(normalizedQuery) ||
+    city.provincia.toLowerCase().includes(normalizedQuery) ||
+    city.sigla.toLowerCase() === normalizedQuery
+  )
+  citySuggestions.value = filtered.slice(0, 10) // Limit to 10 results
+  showSuggestions.value = filtered.length > 0
+}
+
+// Watch cityQuery for changes
+watch(cityQuery, async (newQuery) => {
+  highlightedIndex.value = -1
+
+  // If user is typing something different from selected value, clear form
+  if (formData.value.city && newQuery !== formData.value.city) {
+    formData.value.city = ''
+    formData.value.province = ''
+  }
+
+  // If less than 3 characters, reset everything
+  if (newQuery.length < 3) {
+    citySuggestions.value = []
+    showSuggestions.value = false
+    // Reset API flag if user clears the field
+    if (newQuery.length === 0) {
+      hasLoadedCities.value = false
+      allCities.value = []
+    }
+    return
+  }
+
+  // If API not yet called, fetch cities
+  if (!hasLoadedCities.value) {
+    const results = await searchCities(newQuery)
+    allCities.value = results
+    hasLoadedCities.value = true
+    filterCitiesLocally(newQuery)
+  } else {
+    // Filter locally
+    filterCitiesLocally(newQuery)
+  }
+})
+
+const onCityFocus = () => {
+  if (citySuggestions.value.length > 0) {
+    showSuggestions.value = true
+  }
+}
+
+const onCityBlur = () => {
+  // Delay to allow click on suggestion
+  setTimeout(() => {
+    showSuggestions.value = false
+    touchedFields.value.add('city')
+  }, 200)
+}
+
+const selectCity = (city: ItalianCity) => {
+  formData.value.city = city.nome
+  formData.value.province = `${city.provincia} (${city.sigla})`
+  cityQuery.value = city.nome
+  showSuggestions.value = false
+  citySuggestions.value = []
+  allCities.value = []
+  hasLoadedCities.value = false
+  highlightedIndex.value = -1
+}
+
+const navigateSuggestions = (direction: number) => {
+  if (!showSuggestions.value || citySuggestions.value.length === 0) return
+
+  const newIndex = highlightedIndex.value + direction
+  if (newIndex >= 0 && newIndex < citySuggestions.value.length) {
+    highlightedIndex.value = newIndex
+  }
+}
+
+const selectHighlightedCity = () => {
+  if (highlightedIndex.value >= 0 && highlightedIndex.value < citySuggestions.value.length) {
+    selectCity(citySuggestions.value[highlightedIndex.value])
+  }
+}
+
+const closeSuggestions = () => {
+  showSuggestions.value = false
+  highlightedIndex.value = -1
 }
 
 const errors = computed(() => {
@@ -219,5 +396,15 @@ const getPackageSizeWeight = (size: PackageSize): string => {
 .slide-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

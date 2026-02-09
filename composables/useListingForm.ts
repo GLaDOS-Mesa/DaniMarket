@@ -52,7 +52,8 @@ const createInitialFormData = (): ListingFormData => ({
   material: '',
 
   // Step 4 — Shipping
-  location: '',
+  city: '',
+  province: '',
   shippingAvailable: true,
   packageSize: null,
   shippingCost: null,
@@ -127,8 +128,12 @@ const validateStep3 = (): StepValidation => {
 const validateStep4 = (): StepValidation => {
   const errors: Record<string, string> = {}
 
-  if (!formData.value.location.trim()) {
-    errors.location = 'La località è obbligatoria'
+  if (!formData.value.city.trim()) {
+    errors.city = 'Il comune è obbligatorio'
+  }
+
+  if (!formData.value.province.trim()) {
+    errors.province = 'La provincia è obbligatoria'
   }
 
   if (formData.value.shippingAvailable && !formData.value.packageSize) {

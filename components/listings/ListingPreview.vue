@@ -60,7 +60,7 @@
       </div>
 
       <!-- Location -->
-      <div v-if="formData.location" class="flex items-center gap-1 mt-3 text-sm text-gray-500">
+      <div v-if="formData.city" class="flex items-center gap-1 mt-3 text-sm text-gray-500">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path
             stroke-linecap="round"
@@ -75,7 +75,7 @@
             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
           />
         </svg>
-        {{ formData.location }}
+        {{ formData.city }}<template v-if="formData.province">, {{ formData.province }}</template>
       </div>
 
       <!-- Shipping badge -->

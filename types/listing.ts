@@ -71,7 +71,8 @@ export interface ListingFormData {
   material: string
 
   // Step 4 — Spedizione
-  location: string
+  city: string
+  province: string
   shippingAvailable: boolean
   packageSize: PackageSize | null
   shippingCost: number | null
@@ -289,10 +290,10 @@ export const packageSizeMapping: Record<PackageSize, Record<Platform, string>> =
 // ========== PLATFORM COMPATIBILITY HELPERS ==========
 
 export const platformRequiredFields: Record<Platform, (keyof ListingFormData)[]> = {
-  [Platform.EBAY]: ['title', 'photos', 'price', 'category', 'condition', 'location'],
+  [Platform.EBAY]: ['title', 'photos', 'price', 'category', 'condition', 'city', 'province'],
   [Platform.VINTED]: ['title', 'photos', 'description', 'price', 'category', 'condition', 'brand', 'size'],
-  [Platform.SUBITO]: ['title', 'description', 'category', 'condition', 'location'],
-  [Platform.FACEBOOK]: ['title', 'photos', 'price', 'category', 'condition', 'location'],
+  [Platform.SUBITO]: ['title', 'description', 'category', 'condition', 'city', 'province'],
+  [Platform.FACEBOOK]: ['title', 'photos', 'price', 'category', 'condition', 'city', 'province'],
 }
 
 // Categories that require the size field
@@ -378,3 +379,13 @@ export const platformLabels: Record<Platform, string> = {
 export const clothingSizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'] as const
 
 export const shoeSizes = Array.from({ length: 16 }, (_, i) => String(35 + i)) as string[]
+
+// ========== ITALIAN LOCATION ==========
+
+export interface ItalianCity {
+  nome: string
+  provincia: string
+  sigla: string
+  regione: string
+  cap: string[]
+}
