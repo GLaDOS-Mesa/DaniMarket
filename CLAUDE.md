@@ -85,8 +85,8 @@ chore: add .claude to gitignore
 ```
 
 ### Workflow
+- **NEVER commit or push automatically** - only when explicitly requested by the user
 - Make atomic commits (one feature/fix per commit)
-- Push after each logical step is complete
 - Keep commits small and focused
 
 ## UI/UX Guidelines
