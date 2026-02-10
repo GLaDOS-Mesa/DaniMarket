@@ -97,4 +97,99 @@ Il vibe coding non sostituisce la competenza tecnica, ma la amplifica. Un develo
 
 ---
 
+## Feature Complessa: Pagina Dettaglio Annuncio
+
+Per funzionalità più articolate, il workflow si evolve in un processo strutturato che sfrutta Claude per l'analisi iniziale e Claude Code per l'implementazione.
+
+### Fase 1: Analisi e Generazione Prompt (Claude)
+
+Prima di iniziare lo sviluppo, abbiamo usato **Claude** (non Claude Code) per:
+
+1. **Analisi dei requisiti**: descrizione della feature desiderata e del contesto esistente
+2. **Decomposizione in sprint**: suddivisione logica in fasi incrementali
+3. **Generazione prompt strutturato**: creazione di un documento dettagliato (`details_prompt.md`) con specifiche tecniche, componenti da creare, props/events, stili e comportamenti
+
+Questo approccio "prompt engineering" ha prodotto un piano di implementazione chiaro prima ancora di scrivere codice.
+
+### Fase 2: Plan Mode (Claude Code)
+
+Data la sostanziosità dell'implementazione (15+ componenti, composables, mock data), abbiamo attivato il **plan mode** di Claude Code:
+
+```
+/plan Implementa la pagina dettaglio annuncio /listings/[id] con view mode
+```
+
+Claude Code ha:
+- Esplorato la codebase esistente
+- Identificato pattern e convenzioni già in uso
+- Prodotto un piano dettagliato con ordine di implementazione
+- Atteso approvazione prima di procedere
+
+### Fase 3: Sviluppo per Sprint
+
+L'implementazione è stata scomposta in **5 sprint** incrementali:
+
+| Sprint | Contenuto | Commit |
+|--------|-----------|--------|
+| 1 | Tipi, mock data, composable API | `feat(types): add listing detail types` |
+| 2 | Componenti info (Gallery, BasicInfo, Details, Shipping) | `refactor(listings): extract detail page sections` |
+| 3 | Componenti status (Platforms, Timeline, Stats) | `refactor(listings): extract right column components` |
+| 4 | ActionBar e DeleteConfirmModal | `feat(listings): add action bar and delete modal` |
+| 5 | Pagina principale, layout responsive, integrazioni | `feat(listings): complete view mode with all components` |
+
+Ogni sprint ha prodotto codice funzionante e testabile, con commit atomici.
+
+### Fase 4: Review e Miglioramenti (Claude)
+
+Dopo lo Sprint 5, siamo tornati a **Claude** per una review:
+
+> "Siamo arrivati all'implementazione completa fino allo sprint 5. Vedi mancanze o migliorie prima di passare alle successive?"
+
+Claude ha suggerito:
+
+**Test UI e Edge Cases:**
+- Verificare empty states nei componenti (PlatformStatusSection con 0 piattaforme)
+- Testare Timeline con pochi elementi (1-2 entries)
+- Controllare campi opzionali in ListingDetails e ListingShipping
+
+**Verifica Mock Data:**
+- Confermare esistenza di mock listing per test edge cases (listing-3: DRAFT, no images, no platforms)
+- Verificare coerenza tra tipi TypeScript e dati mock
+
+**Miglioramenti UX:**
+- Aggiungere breadcrumb per navigazione contestuale
+- Migliorare empty state di PlatformStatusSection con CTA "Aggiungi piattaforma"
+- Considerare skeleton loader per loading state più fluido
+
+### Fase 5: Implementazione Miglioramenti
+
+I suggerimenti sono stati implementati in Claude Code:
+
+```
+fix(ui): fix toast z-index appearing behind header
+feat(listings): add breadcrumb navigation to detail header
+fix(listings): improve platform section empty state with add button
+feat(listings): add duplicate listing functionality with form pre-population
+```
+
+### Risultato
+
+| Metrica | Valore |
+|---------|--------|
+| Componenti creati | 10 |
+| File modificati | 20 |
+| Tempo totale | ~2 ore |
+| Commit | 9 |
+| Bug post-implementazione | 1 (empty state piattaforme, fixato in 5 min) |
+
+### Lezioni Apprese
+
+1. **Claude per strategia, Claude Code per esecuzione**: usare Claude per analisi iniziale e review produce prompt migliori
+2. **Plan mode per feature complesse**: evita implementazioni caotiche e mantiene focus
+3. **Sprint incrementali**: permettono test continui e catch di problemi early
+4. **Review intermedia**: tornare a Claude dopo milestone aiuta a non dimenticare edge cases
+5. **Mock data realistici**: avere dati di test per tutti gli scenari accelera il debugging
+
+---
+
 *Documento generato durante sessione di sviluppo DaniMarket - Febbraio 2026*
