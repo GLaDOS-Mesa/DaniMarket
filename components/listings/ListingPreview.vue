@@ -6,7 +6,8 @@
         v-if="previewImageUrl"
         :src="previewImageUrl"
         alt="Anteprima foto"
-        class="w-full h-full object-cover"
+        class="w-full h-full object-cover transition-transform"
+        :style="{ transform: `rotate(${previewImageDisplayRotation}deg)` }"
       />
       <div v-else class="w-full h-full flex items-center justify-center text-gray-400" aria-hidden="true">
         <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,9 +114,16 @@ const { formData } = useListingForm()
 
 const previewImageUrl = computed(() => {
   if (formData.value.photos.length > 0) {
-    return URL.createObjectURL(formData.value.photos[0])
+    return URL.createObjectURL(formData.value.photos[0].file)
   }
   return null
+})
+
+const previewImageDisplayRotation = computed(() => {
+  if (formData.value.photos.length > 0) {
+    return formData.value.photos[0].displayRotation
+  }
+  return 0
 })
 
 const formattedPrice = computed(() => {

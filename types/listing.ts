@@ -55,7 +55,7 @@ export enum PackageSize {
 
 export interface ListingFormData {
   // Step 1 — Foto
-  photos: File[]
+  photos: ListingPhoto[]
 
   // Step 2 — Info base
   title: string
@@ -79,6 +79,12 @@ export interface ListingFormData {
 
   // Step 5 — Piattaforme
   platforms: Platform[]
+}
+
+export type ListingPhoto = {
+  file: File
+  rotation: 0 | 90 | 180 | 270
+  displayRotation: number
 }
 
 // ========== PLATFORM MAPPINGS ==========

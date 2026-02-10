@@ -31,7 +31,7 @@
 
     <!-- Drop zone -->
     <div
-      class="border-2 border-dashed rounded-xl p-8 text-center transition-colors"
+      class="border-2 border-dashed rounded-xl p-8 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
       :class="[
         isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-gray-400',
         hasError ? 'border-red-300 bg-red-50' : '',
@@ -86,6 +86,9 @@
         <p class="text-gray-400 text-xs mt-2">{{ formData.photos.length }}/6 foto caricate</p>
       </div>
     </div>
+    <p class="sr-only" role="status" aria-live="polite">
+      {{ formData.photos.length }} foto caricate.
+    </p>
 
     <!-- Error message -->
     <p v-if="hasError" id="photo-error" class="mt-2 text-sm text-red-600" role="alert">
@@ -99,7 +102,7 @@
         <span class="text-gray-400 font-normal">(trascina per riordinare)</span>
       </h3>
 
-      <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+      <div class="grid grid-cols-3 sm:grid-cols-5 gap-3">
         <div
           v-for="(photo, index) in photosPreviews"
           :key="index"
@@ -108,13 +111,16 @@
           draggable="true"
           :aria-label="`Foto ${index + 1}${index === 0 ? ' (copertina)' : ''}: ${photo.name}`"
           @dragstart="handleDragStart(index, $event)"
+          @dragend="handleDragEnd"
           @dragover.prevent="handleDragOver(index)"
           @drop.prevent="handlePhotoDrop(index)"
         >
           <img
             :src="photo.url"
             :alt="`Foto ${index + 1}`"
-            class="w-full h-full object-cover"
+            class="w-full h-full object-cover transition-transform"
+            :style="{ transform: `rotate(${photo.displayRotation}deg)` }"
+            draggable="false"
           />
 
           <!-- Cover badge -->
@@ -138,9 +144,30 @@
             </svg>
           </button>
 
+          <!-- Rotation control -->
+          <button
+            type="button"
+            class="absolute bottom-1 right-1 w-7 h-7 bg-white/90 text-gray-700 rounded-full shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+            :aria-label="`Ruota foto ${index + 1} di 90 gradi`"
+            draggable="false"
+            @click.stop="rotatePhoto(index)"
+            @pointerdown.stop
+            @mousedown.stop
+            @dragstart.stop.prevent
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+              <path d="M22 12l-3 3-3-3" />
+              <path d="M2 12l3-3 3 3" />
+              <path d="M19.016 14v-1.95A7.05 7.05 0 0 0 8 6.22" />
+              <path d="M16.016 17.845A7.05 7.05 0 0 1 5 12.015V10" />
+              <path stroke-linecap="round" d="M5 10V9" />
+              <path stroke-linecap="round" d="M19 15v-1" />
+            </svg>
+          </button>
+
           <!-- Drag handle overlay -->
           <div
-            class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-colors cursor-grab active:cursor-grabbing"
+            class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-colors cursor-grab active:cursor-grabbing pointer-events-none"
             aria-hidden="true"
           />
         </div>
@@ -152,11 +179,13 @@
 <script setup lang="ts">
 import { useListingForm } from '~/composables/useListingForm'
 
-const { formData, stepValidation, isDuplicating, addPhoto, removePhoto, reorderPhotos } = useListingForm()
+const { formData, stepValidation, isDuplicating, addPhoto, setPhotoRotation, removePhoto, reorderPhotos } = useListingForm()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
 const draggedIndex = ref<number | null>(null)
+const isPhotoDragging = ref(false)
+const suppressRotateClickUntil = ref(0)
 
 const hasError = computed(() => !!stepValidation.value.errors.photos)
 
@@ -168,9 +197,10 @@ const dropzoneLabel = computed(() => {
 })
 
 const photosPreviews = computed(() => {
-  return formData.value.photos.map((file) => ({
-    url: URL.createObjectURL(file),
-    name: file.name,
+  return formData.value.photos.map((photo) => ({
+    url: URL.createObjectURL(photo.file),
+    name: photo.file.name,
+    displayRotation: photo.displayRotation,
   }))
 })
 
@@ -206,6 +236,7 @@ const addPhotosFromFileList = (files: FileList) => {
 
 const handleDragStart = (index: number, event: DragEvent) => {
   draggedIndex.value = index
+  isPhotoDragging.value = true
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
   }
@@ -219,7 +250,25 @@ const handlePhotoDrop = (targetIndex: number) => {
   if (draggedIndex.value !== null && draggedIndex.value !== targetIndex) {
     reorderPhotos(draggedIndex.value, targetIndex)
   }
+  // Prevent synthetic click fired by browser right after dropping.
+  suppressRotateClickUntil.value = Date.now() + 250
   draggedIndex.value = null
+  isPhotoDragging.value = false
+}
+
+const handleDragEnd = () => {
+  suppressRotateClickUntil.value = Date.now() + 250
+  draggedIndex.value = null
+  isPhotoDragging.value = false
+}
+
+const rotatePhoto = (index: number) => {
+  if (isPhotoDragging.value || Date.now() < suppressRotateClickUntil.value) return
+  const photo = formData.value.photos[index]
+  if (!photo) return
+  const nextDisplayRotation = photo.displayRotation + 90
+  const nextRotation = (nextDisplayRotation % 360) as 0 | 90 | 180 | 270
+  setPhotoRotation(index, nextRotation, nextDisplayRotation)
 }
 
 // Clean up object URLs when component unmounts

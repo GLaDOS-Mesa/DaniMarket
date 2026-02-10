@@ -1,5 +1,6 @@
 import {
   type ListingFormData,
+  type ListingPhoto,
   type Platform,
   type Listing,
   platformRequiredFields,
@@ -27,6 +28,7 @@ interface UseListingFormReturn {
   prevStep: () => void
   updateField: <K extends keyof ListingFormData>(field: K, value: ListingFormData[K]) => void
   addPhoto: (file: File) => void
+  setPhotoRotation: (index: number, rotation: ListingPhoto['rotation'], displayRotation?: number) => void
   removePhoto: (index: number) => void
   reorderPhotos: (fromIndex: number, toIndex: number) => void
   getPlatformReadiness: (platform: Platform) => { ready: boolean; missingFields: string[] }
@@ -229,7 +231,15 @@ export const useListingForm = (): UseListingFormReturn => {
 
   const addPhoto = (file: File) => {
     if (formData.value.photos.length < 6) {
-      formData.value.photos.push(file)
+      formData.value.photos.push({ file, rotation: 0, displayRotation: 0 })
+    }
+  }
+
+  const setPhotoRotation = (index: number, rotation: ListingPhoto['rotation'], displayRotation?: number) => {
+    const photo = formData.value.photos[index]
+    if (photo) {
+      photo.rotation = rotation
+      photo.displayRotation = displayRotation ?? rotation
     }
   }
 
@@ -280,10 +290,12 @@ export const useListingForm = (): UseListingFormReturn => {
       // Cannot save File objects to localStorage, so we save metadata instead
       const dataToSave = {
         ...formData.value,
-        photos: formData.value.photos.map((file) => ({
-          name: file.name,
-          size: file.size,
-          type: file.type,
+        photos: formData.value.photos.map((photo) => ({
+          name: photo.file.name,
+          size: photo.file.size,
+          type: photo.file.type,
+          rotation: photo.rotation,
+          displayRotation: photo.displayRotation,
         })),
         _currentStep: currentStep.value,
         _savedAt: new Date().toISOString(),
@@ -365,6 +377,7 @@ export const useListingForm = (): UseListingFormReturn => {
     prevStep,
     updateField,
     addPhoto,
+    setPhotoRotation,
     removePhoto,
     reorderPhotos,
     getPlatformReadiness,
