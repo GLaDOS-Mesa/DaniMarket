@@ -103,7 +103,14 @@
             />
 
             <!-- Description Card -->
-            <ListingsDetailListingDetails :description="listing.description" />
+            <ListingsDetailListingDetails
+              :description="listing.description"
+              :is-edit-mode="isEditMode"
+              :working-description="workingCopy?.description"
+              :is-modified="modifiedFields.has('description')"
+              :error="validationErrors.description"
+              @update="(value: string) => handleFieldUpdate('description', value)"
+            />
 
             <!-- Shipping Card -->
             <ListingsDetailListingShipping
