@@ -181,6 +181,17 @@
       @close="showDeleteModal = false"
       @confirm="handleDeleteConfirm"
     />
+
+    <!-- Unsaved changes modal -->
+    <ListingsDetailUnsavedChangesModal
+      :is-open="showUnsavedModal"
+      :modified-fields-list="modifiedFieldsList"
+      :is-saving="isSavingFromModal"
+      :is-valid="isValid"
+      @save-and-exit="handleSaveAndExit"
+      @discard-and-exit="handleDiscardAndExit"
+      @cancel="showUnsavedModal = false"
+    />
   </div>
 </template>
 
@@ -208,6 +219,7 @@ const {
   exitEditMode,
   updateField,
   discardChanges,
+  getFieldLabel,
 } = useListingDetail()
 
 // State
@@ -216,6 +228,14 @@ const isLoading = ref(true)
 const isPublishing = ref(false)
 const isDeleting = ref(false)
 const showDeleteModal = ref(false)
+const showUnsavedModal = ref(false)
+const isSavingFromModal = ref(false)
+const pendingNavigation = ref<(() => void) | null>(null)
+
+// Computed - list of modified field labels for the modal
+const modifiedFieldsList = computed(() => {
+  return Array.from(modifiedFields.value).map(field => getFieldLabel(field))
+})
 
 // Computed
 const publishedPlatformNames = computed(() => {
@@ -262,10 +282,44 @@ const handleSave = async () => {
 
 const handleCancel = () => {
   if (hasChanges.value) {
-    // TODO: Show unsaved changes modal (Sprint 7.7)
-    discardChanges()
+    showUnsavedModal.value = true
+  } else {
+    exitEditMode()
   }
+}
+
+const handleSaveAndExit = async () => {
+  if (!listing.value || !workingCopy.value) return
+
+  isSavingFromModal.value = true
+  try {
+    Object.assign(listing.value, workingCopy.value)
+    exitEditMode()
+    showUnsavedModal.value = false
+    success('Modifiche salvate con successo!')
+
+    // Execute pending navigation if any
+    if (pendingNavigation.value) {
+      pendingNavigation.value()
+      pendingNavigation.value = null
+    }
+  } catch (err) {
+    error('Errore durante il salvataggio')
+  } finally {
+    isSavingFromModal.value = false
+  }
+}
+
+const handleDiscardAndExit = () => {
+  discardChanges()
   exitEditMode()
+  showUnsavedModal.value = false
+
+  // Execute pending navigation if any
+  if (pendingNavigation.value) {
+    pendingNavigation.value()
+    pendingNavigation.value = null
+  }
 }
 
 const handleFieldUpdate = (field: string, value: unknown) => {
@@ -355,6 +409,17 @@ const handleDeleteConfirm = async () => {
     isDeleting.value = false
   }
 }
+
+// Navigation guard - prevent leaving with unsaved changes
+onBeforeRouteLeave((_to, _from, next) => {
+  if (isEditMode.value && hasChanges.value) {
+    showUnsavedModal.value = true
+    pendingNavigation.value = () => next()
+    next(false)
+  } else {
+    next()
+  }
+})
 
 // Page meta
 useHead({
