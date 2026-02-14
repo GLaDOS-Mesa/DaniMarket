@@ -3,8 +3,77 @@
     class="bg-white rounded-xl shadow-sm p-4 lg:p-6"
     aria-label="Azioni annuncio"
   >
+    <!-- Edit mode actions -->
+    <div
+      v-if="isEditMode"
+      class="flex flex-col gap-3"
+    >
+      <!-- Save button -->
+      <button
+        type="button"
+        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+        :class="canSave
+          ? 'bg-primary-600 text-white hover:bg-primary-700'
+          : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+        :disabled="!canSave"
+        :aria-disabled="!canSave"
+        @click="canSave && $emit('save')"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 13l4 4L19 7"
+          />
+        </svg>
+        Salva modifiche
+      </button>
+
+      <!-- Cancel button -->
+      <button
+        type="button"
+        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+        @click="$emit('cancel')"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+        Annulla
+      </button>
+
+      <!-- Validation hint -->
+      <p
+        v-if="hasChanges && !isValid"
+        class="text-sm text-amber-600 text-center"
+        role="status"
+      >
+        Correggi gli errori per salvare
+      </p>
+    </div>
+
     <!-- View mode actions -->
-    <div class="flex flex-col gap-3">
+    <div
+      v-else
+      class="flex flex-col gap-3"
+    >
       <!-- Primary action: Edit -->
       <button
         type="button"
@@ -122,14 +191,20 @@ import { ListingStatus } from '~/types/listing'
 const props = defineProps<{
   status: ListingStatus
   isPublishing?: boolean
+  isEditMode?: boolean
+  hasChanges?: boolean
+  isValid?: boolean
 }>()
 
 defineEmits<{
   (e: 'edit'): void
+  (e: 'save'): void
+  (e: 'cancel'): void
   (e: 'publish'): void
   (e: 'duplicate'): void
   (e: 'delete'): void
 }>()
 
 const isSold = computed(() => props.status === ListingStatus.SOLD)
+const canSave = computed(() => props.hasChanges && props.isValid)
 </script>
