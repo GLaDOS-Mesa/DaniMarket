@@ -96,7 +96,7 @@
             <ListingsDetailListingBasicInfo
               :listing="listing"
               :is-edit-mode="isEditMode"
-              :working-copy="workingCopy"
+              :working-copy="workingCopy || undefined"
               :modified-fields="modifiedFields"
               :errors="validationErrors"
               @update="handleFieldUpdate"
@@ -120,6 +120,15 @@
               :shipping-cost="listing.shippingCost"
               :package-size="listing.packageSize"
               :currency="listing.currency"
+              :is-edit-mode="isEditMode"
+              :working-city="workingCopy?.city"
+              :working-province="workingCopy?.province"
+              :working-shipping-available="workingCopy?.shippingAvailable"
+              :working-shipping-cost="workingCopy?.shippingCost"
+              :working-package-size="workingCopy?.packageSize"
+              :modified-fields="modifiedFields"
+              :errors="validationErrors"
+              @update="handleFieldUpdate"
             />
           </div>
 
@@ -253,7 +262,7 @@ const handleCancel = () => {
 }
 
 const handleFieldUpdate = (field: string, value: unknown) => {
-  updateField(field, value)
+  updateField(field as keyof Listing, value as Listing[keyof Listing])
 }
 
 const handleAddPlatform = () => {
