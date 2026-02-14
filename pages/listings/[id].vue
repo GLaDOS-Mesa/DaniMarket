@@ -93,7 +93,14 @@
             />
 
             <!-- Basic Info Card -->
-            <ListingsDetailListingBasicInfo :listing="listing" />
+            <ListingsDetailListingBasicInfo
+              :listing="listing"
+              :is-edit-mode="isEditMode"
+              :working-copy="workingCopy"
+              :modified-fields="modifiedFields"
+              :errors="validationErrors"
+              @update="handleFieldUpdate"
+            />
 
             <!-- Description Card -->
             <ListingsDetailListingDetails :description="listing.description" />
@@ -115,7 +122,12 @@
             <ListingsDetailActionBar
               :status="listing.status"
               :is-publishing="isPublishing"
+              :is-edit-mode="isEditMode"
+              :has-changes="hasChanges"
+              :is-valid="isValid"
               @edit="handleEdit"
+              @save="handleSave"
+              @cancel="handleCancel"
               @publish="handlePublish"
               @duplicate="handleDuplicate"
               @delete="showDeleteModal = true"
@@ -154,11 +166,26 @@ import type { Listing } from '~/types/listing'
 import { ListingStatus, PlatformPublicationStatus, platformLabels } from '~/types/listing'
 import { useListingsApi } from '~/composables/useListingsApi'
 import { useToast } from '~/composables/useToast'
+import { useListingDetail } from '~/composables/useListingDetail'
 
 const route = useRoute()
 const router = useRouter()
 const { getById, update, remove } = useListingsApi()
 const { success, error } = useToast()
+
+// Edit mode state
+const {
+  isEditMode,
+  workingCopy,
+  modifiedFields,
+  hasChanges,
+  isValid,
+  validationErrors,
+  enterEditMode,
+  exitEditMode,
+  updateField,
+  discardChanges,
+} = useListingDetail()
 
 // State
 const listing = ref<Listing | null>(null)
@@ -191,8 +218,35 @@ const handleOpenLightbox = (index: number) => {
 
 // Action handlers
 const handleEdit = () => {
-  // TODO: Implement edit mode in future sprint
-  success('Modalità modifica in arrivo!')
+  if (listing.value) {
+    enterEditMode(listing.value)
+  }
+}
+
+const handleSave = async () => {
+  if (!listing.value || !workingCopy.value) return
+
+  try {
+    // For now, just simulate save and update local state
+    // In production, this would call the API
+    Object.assign(listing.value, workingCopy.value)
+    exitEditMode()
+    success('Modifiche salvate con successo!')
+  } catch (err) {
+    error('Errore durante il salvataggio')
+  }
+}
+
+const handleCancel = () => {
+  if (hasChanges.value) {
+    // TODO: Show unsaved changes modal (Sprint 7.7)
+    discardChanges()
+  }
+  exitEditMode()
+}
+
+const handleFieldUpdate = (field: string, value: unknown) => {
+  updateField(field, value)
 }
 
 const handleAddPlatform = () => {
