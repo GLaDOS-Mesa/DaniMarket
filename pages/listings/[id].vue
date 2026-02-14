@@ -89,7 +89,14 @@
             <ListingsDetailListingGallery
               :images="listing.images"
               :title="listing.title"
+              :is-edit-mode="isEditMode"
+              :working-images="workingCopy?.images"
+              :is-modified="modifiedFields.has('images')"
+              :error="validationErrors.images"
               @open-lightbox="handleOpenLightbox"
+              @reorder="handleImageReorder"
+              @remove="handleImageRemove"
+              @add-photos="handleImageAdd"
             />
 
             <!-- Basic Info Card -->
@@ -263,6 +270,34 @@ const handleCancel = () => {
 
 const handleFieldUpdate = (field: string, value: unknown) => {
   updateField(field as keyof Listing, value as Listing[keyof Listing])
+}
+
+// Image handlers
+const handleImageReorder = (fromIndex: number, toIndex: number) => {
+  if (!workingCopy.value?.images) return
+
+  const images = [...workingCopy.value.images]
+  const [removed] = images.splice(fromIndex, 1)
+  images.splice(toIndex, 0, removed)
+  updateField('images', images)
+}
+
+const handleImageRemove = (index: number) => {
+  if (!workingCopy.value?.images) return
+
+  const images = [...workingCopy.value.images]
+  images.splice(index, 1)
+  updateField('images', images)
+}
+
+const handleImageAdd = async (files: File[]) => {
+  if (!workingCopy.value?.images) return
+
+  // In a real app, this would upload to Cloudinary and get URLs
+  // For now, create object URLs for preview
+  const newImageUrls = files.map(file => URL.createObjectURL(file))
+  const images = [...workingCopy.value.images, ...newImageUrls].slice(0, 6)
+  updateField('images', images)
 }
 
 const handleAddPlatform = () => {
