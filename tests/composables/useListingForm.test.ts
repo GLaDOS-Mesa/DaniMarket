@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useListingForm } from '~/composables/useListingForm'
-import { ListingCategory, ListingCondition, ListingColor, PackageSize, Platform } from '~/types/listing'
+import { ListingCategory, ListingCondition, ListingColor, PackageSize, Platform, type ListingPhoto } from '~/types/listing'
+
+// Helper to create a ListingPhoto from a File
+const createListingPhoto = (file: File): ListingPhoto => ({
+  file,
+  rotation: 0,
+  displayRotation: 0,
+})
 
 describe('useListingForm', () => {
   beforeEach(() => {
@@ -41,7 +48,7 @@ describe('useListingForm', () => {
       const { stepValidation, formData } = useListingForm()
       // Create mock File objects
       const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' })
-      formData.value.photos = [mockFile]
+      formData.value.photos = [createListingPhoto(mockFile)]
       expect(stepValidation.value.isValid).toBe(true)
       expect(stepValidation.value.errors.photos).toBeUndefined()
     })
@@ -49,7 +56,7 @@ describe('useListingForm', () => {
     it('should be invalid with more than 6 photos', () => {
       const { stepValidation, formData } = useListingForm()
       const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' })
-      formData.value.photos = Array(7).fill(mockFile)
+      formData.value.photos = Array(7).fill(null).map(() => createListingPhoto(mockFile))
       expect(stepValidation.value.isValid).toBe(false)
       expect(stepValidation.value.errors.photos).toBe('Massimo 6 foto consentite')
     })
@@ -59,7 +66,7 @@ describe('useListingForm', () => {
     beforeEach(() => {
       const { formData, goToStep } = useListingForm()
       // Setup valid step 1
-      formData.value.photos = [new File([''], 'test.jpg', { type: 'image/jpeg' })]
+      formData.value.photos = [createListingPhoto(new File([''], 'test.jpg', { type: 'image/jpeg' }))]
       goToStep(2)
     })
 
@@ -114,7 +121,7 @@ describe('useListingForm', () => {
     beforeEach(() => {
       const { formData, goToStep } = useListingForm()
       // Setup valid steps 1-2
-      formData.value.photos = [new File([''], 'test.jpg', { type: 'image/jpeg' })]
+      formData.value.photos = [createListingPhoto(new File([''], 'test.jpg', { type: 'image/jpeg' }))]
       formData.value.title = 'Test'
       formData.value.description = 'Test desc'
       formData.value.price = 50
@@ -166,7 +173,7 @@ describe('useListingForm', () => {
     beforeEach(() => {
       const { formData, goToStep } = useListingForm()
       // Setup valid steps 1-3
-      formData.value.photos = [new File([''], 'test.jpg', { type: 'image/jpeg' })]
+      formData.value.photos = [createListingPhoto(new File([''], 'test.jpg', { type: 'image/jpeg' }))]
       formData.value.title = 'Test'
       formData.value.description = 'Test desc'
       formData.value.price = 50
@@ -212,7 +219,7 @@ describe('useListingForm', () => {
     beforeEach(() => {
       const { formData, goToStep } = useListingForm()
       // Setup valid steps 1-4
-      formData.value.photos = [new File([''], 'test.jpg', { type: 'image/jpeg' })]
+      formData.value.photos = [createListingPhoto(new File([''], 'test.jpg', { type: 'image/jpeg' }))]
       formData.value.title = 'Test'
       formData.value.description = 'Test desc'
       formData.value.price = 50
@@ -241,7 +248,7 @@ describe('useListingForm', () => {
   describe('navigation', () => {
     it('should allow going to previous steps', () => {
       const { formData, goToStep, currentStep } = useListingForm()
-      formData.value.photos = [new File([''], 'test.jpg', { type: 'image/jpeg' })]
+      formData.value.photos = [createListingPhoto(new File([''], 'test.jpg', { type: 'image/jpeg' }))]
       goToStep(2)
       expect(currentStep.value).toBe(2)
       goToStep(1)
@@ -257,7 +264,7 @@ describe('useListingForm', () => {
 
     it('should allow going to next step with valid data', () => {
       const { canGoToStep, formData } = useListingForm()
-      formData.value.photos = [new File([''], 'test.jpg', { type: 'image/jpeg' })]
+      formData.value.photos = [createListingPhoto(new File([''], 'test.jpg', { type: 'image/jpeg' }))]
       expect(canGoToStep(2)).toBe(true)
     })
   })
@@ -288,7 +295,7 @@ describe('useListingForm', () => {
 
       removePhoto(0)
       expect(formData.value.photos.length).toBe(1)
-      expect(formData.value.photos[0].name).toBe('test2.jpg')
+      expect(formData.value.photos[0].file.name).toBe('test2.jpg')
     })
 
     it('should reorder photos', () => {
@@ -302,9 +309,9 @@ describe('useListingForm', () => {
       addPhoto(file3)
 
       reorderPhotos(0, 2) // Move first to last
-      expect(formData.value.photos[0].name).toBe('test2.jpg')
-      expect(formData.value.photos[1].name).toBe('test3.jpg')
-      expect(formData.value.photos[2].name).toBe('test1.jpg')
+      expect(formData.value.photos[0].file.name).toBe('test2.jpg')
+      expect(formData.value.photos[1].file.name).toBe('test3.jpg')
+      expect(formData.value.photos[2].file.name).toBe('test1.jpg')
     })
   })
 
@@ -314,7 +321,7 @@ describe('useListingForm', () => {
 
       // Setup minimal data
       formData.value.title = 'Test'
-      formData.value.photos = [new File([''], 'test.jpg', { type: 'image/jpeg' })]
+      formData.value.photos = [createListingPhoto(new File([''], 'test.jpg', { type: 'image/jpeg' }))]
       formData.value.price = 50
       formData.value.category = ListingCategory.ELECTRONICS
       formData.value.condition = ListingCondition.GOOD
@@ -410,7 +417,7 @@ describe('useListingForm', () => {
       const { populateFromListing, currentStep, goToStep, formData } = useListingForm()
 
       // First setup valid data and go to another step
-      formData.value.photos = [new File([''], 'test.jpg', { type: 'image/jpeg' })]
+      formData.value.photos = [createListingPhoto(new File([''], 'test.jpg', { type: 'image/jpeg' }))]
       formData.value.title = 'Test'
       formData.value.description = 'Test desc'
       formData.value.price = 50
