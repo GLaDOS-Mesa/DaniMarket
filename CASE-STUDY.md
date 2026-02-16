@@ -192,4 +192,156 @@ feat(listings): add duplicate listing functionality with form pre-population
 
 ---
 
-*Documento generato durante sessione di sviluppo DaniMarket - Febbraio 2026*
+## Sprint 6: Testing Setup
+
+Prima di procedere con l'edit mode, abbiamo strutturato una suite di test per garantire stabilità durante le modifiche.
+
+### Configurazione
+
+- **Framework**: Vitest v2.1.9 + happy-dom
+- **Test Utils**: @vue/test-utils per componenti Vue
+- **Auto-imports**: Vue reactivity (ref, computed) disponibili nei test
+
+### Test Implementati
+
+| File | Test | Copertura |
+|------|------|-----------|
+| `useListingForm.test.ts` | 37 test | Validazione step, foto, navigazione, platform readiness, duplicazione |
+| `useToast.test.ts` | 11 test | Show/remove toast, auto-dismiss, convenience methods |
+| `platformMappings.test.ts` | 16 test | Mappature categorie/condizioni per piattaforma |
+| **Totale** | **64 test** | Composables core |
+
+### Commit
+
+```
+be7b9e3 test: add Vitest setup and tests for composables
+```
+
+### Tempo: ~30 min
+
+---
+
+## Feature Avanzata: Edit Mode (Sprint 7)
+
+Dopo il view mode, abbiamo implementato la modalità di modifica inline della pagina dettaglio. Questa feature dimostra come gestire complessità crescente mantenendo il workflow vibe coding.
+
+### Architettura Edit Mode
+
+L'implementazione ha richiesto un composable dedicato con pattern singleton per gestire lo stato condiviso:
+
+```typescript
+// composables/useListingDetail.ts
+const isEditMode = ref(false)
+const workingCopy = ref<Partial<Listing> | null>(null)
+const originalSnapshot = ref<Partial<Listing> | null>(null)
+
+// Change tracking con deep comparison
+const modifiedFields = computed(() => {
+  const modified = new Set<string>()
+  for (const key of Object.keys(workingCopy.value)) {
+    if (!areValuesEqual(workingCopy.value[key], originalSnapshot.value[key])) {
+      modified.add(key)
+    }
+  }
+  return modified
+})
+```
+
+### Sprint 7: Sub-Sprint Breakdown
+
+| Sub-Sprint | Contenuto | Complessità |
+|------------|-----------|-------------|
+| 7.1 | `useListingDetail` composable (state, validation, change tracking) | Alta |
+| 7.2 | ActionBar con toggle Modifica/Salva/Annulla | Media |
+| 7.3 | ListingBasicInfo edit (titolo, descrizione, prezzo, categoria) | Media |
+| 7.4 | ListingDetails edit (marca, taglia, colori, materiale) | Media |
+| 7.5 | ListingShipping edit (città autocomplete, spedizione, pacco) | Alta |
+| 7.6 | ListingGallery edit (drag-to-reorder, rimuovi, aggiungi foto) | Alta |
+| 7.7 | UnsavedChangesModal + navigation guard | Media |
+
+### Pattern Implementati
+
+**1. Indicatore Campi Modificati**
+```vue
+<input :class="{ 'ring-2 ring-amber-300 border-amber-400': isFieldModified('title') }" />
+```
+
+**2. Navigation Guard**
+```typescript
+onBeforeRouteLeave((to, from, next) => {
+  if (isEditMode.value && hasChanges.value) {
+    showUnsavedModal.value = true
+    pendingNavigation.value = () => next()
+    next(false)
+  } else {
+    next()
+  }
+})
+```
+
+**3. Deep Clone per Working Copy**
+```typescript
+const enterEditMode = (listing: Listing) => {
+  workingCopy.value = JSON.parse(JSON.stringify(listing))
+  originalSnapshot.value = JSON.parse(JSON.stringify(listing))
+  isEditMode.value = true
+}
+```
+
+### Problemi Risolti
+
+| Problema | Soluzione | Tempo |
+|----------|-----------|-------|
+| Vitest v4.0.18 bug su Windows | Downgrade a v2.1.9 | ~15 min |
+| Test con struttura ListingPhoto cambiata | Helper `createListingPhoto()` | ~10 min |
+| Type mismatch `Partial<Listing>` | Type casting esplicito | ~5 min |
+
+### Metriche Sprint 7
+
+| Metrica | Valore |
+|---------|--------|
+| Componenti modificati | 6 |
+| Componenti nuovi | 2 (useListingDetail, UnsavedChangesModal) |
+| Test nuovi | 46 (29 useListingDetail + 16 ActionBar + 1 fix) |
+| Test totali | 110 (64 Sprint 6 + 46 Sprint 7) |
+| Tempo totale | ~3 ore |
+| Commit | 8 |
+
+### Commit History Sprint 7
+
+```
+097dc80 fix(tests): update tests for ListingPhoto structure and downgrade vitest
+17aaa79 feat(listings): add UnsavedChangesModal and navigation guard
+d0a059e feat(listings): add edit mode to ListingGallery component
+fa3be31 feat(listings): add edit mode to ListingShipping component
+032c9be feat(listings): add edit mode to ListingDetails component
+[...altri commit per 7.1-7.3]
+```
+
+### Lezioni Apprese (Edit Mode)
+
+1. **Composable singleton**: stato condiviso tra componenti senza prop drilling
+2. **Deep comparison**: `JSON.stringify` per confronto oggetti nested (con limitazioni note)
+3. **Test maintenance**: quando cambiano i tipi, aggiornare anche i test helper
+4. **Dependency management**: versioni major di librerie (Vitest v4) possono avere bug critici
+5. **Handoff documentation**: creare `HANDOFF_PROMPT.md` per continuità tra sessioni
+
+---
+
+## Riepilogo Complessivo
+
+| Fase | Tempo | Output |
+|------|-------|--------|
+| Setup iniziale + Wizard | ~45 min | Form 5 step funzionante |
+| Sprint 1-5 (View Mode) | ~2 ore | Pagina dettaglio completa |
+| Sprint 6 (Testing) | ~30 min | 64 test per composables core |
+| Sprint 7 (Edit Mode) | ~3 ore | Modifica inline + modal + guard + 46 nuovi test |
+| **Totale** | **~6.5 ore** | **Feature completa view + edit + 110 test** |
+
+**Stima sviluppo tradizionale**: 4-6 giorni developer senior
+
+**Fattore accelerazione**: ~6-10x
+
+---
+
+*Documento aggiornato durante sessione di sviluppo DaniMarket - Febbraio 2026*
