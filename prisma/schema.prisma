@@ -4,76 +4,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-model User {
-  id                   String    @id @default(cuid())
-  email                String    @unique
-  name                 String?
-  platformCredentials  Json?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  listings             Listing[]
-}
-
-model Listing {
-  id           String                @id @default(cuid())
-  userId       String
-  title        String
-  description  String?
-  price        Decimal               @db.Decimal(10, 2)
-  currency     String                @default("EUR")
-  category     Category
-  condition    Condition
-  shippingInfo Json?
-  images       String[]
-  status       ListingStatus         @default(DRAFT)
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
-  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  publications PlatformPublication[]
-
-  @@index([userId])
-  @@index([status])
-}
-
-model PlatformPublication {
-  id                   String            @id @default(cuid())
-  listingId            String
-  platformName         Platform
-  platformListingId    String?
-  status               PublicationStatus @default(PENDING)
-  platformSpecificData Json?
-  errorMessage         String?
-  publishedAt          DateTime?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  listing              Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  @@unique([listingId, platformName])
-  @@index([platformName])
-  @@index([status])
-}
-
-enum Category {
-  ELECTRONICS
-  CLOTHING
-  HOME
-  SPORTS
-  BOOKS
-  TOYS
-  VEHICLES
-  OTHER
-}
-
-enum Condition {
-  NEW
-  LIKE_NEW
-  GOOD
-  FAIR
-  POOR
-}
+// ============ ENUMS ============
 
 enum ListingStatus {
   DRAFT
@@ -82,16 +15,153 @@ enum ListingStatus {
   ARCHIVED
 }
 
+enum ListingCategory {
+  CLOTHING
+  SHOES
+  ACCESSORIES
+  ELECTRONICS
+  HOME
+  SPORTS
+  BOOKS_MEDIA
+  GAMES
+  OTHER
+}
+
+enum ListingCondition {
+  NEW_WITH_TAGS
+  NEW_WITHOUT_TAGS
+  LIKE_NEW
+  GOOD
+  FAIR
+  DAMAGED
+}
+
+enum PackageSize {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
 enum Platform {
   EBAY
   VINTED
   SUBITO
-  FACEBOOK_MARKETPLACE
+  FACEBOOK
 }
 
-enum PublicationStatus {
-  PENDING
+enum PlatformPublicationStatus {
+  DRAFT
   PUBLISHED
   ERROR
   REMOVED
+}
+
+enum ActivityAction {
+  CREATED
+  PUBLISHED
+  UPDATED
+  REMOVED
+  SOLD
+  DRAFTED
+  DELETED
+  PLATFORM_ADDED
+  PLATFORM_REMOVED
+}
+
+// ============ MODELS ============
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  listings Listing[]
+
+  @@map("users")
+}
+
+model Listing {
+  id     String        @id @default(cuid())
+  userId String        @map("user_id")
+  status ListingStatus @default(DRAFT)
+
+  // Info base
+  title       String
+  description String
+  price       Decimal          @db.Decimal(10, 2)
+  category    ListingCategory
+  condition   ListingCondition
+
+  // Dettagli
+  brand    String?
+  size     String?
+  colors   String[]
+  material String?
+
+  // Località
+  city     String
+  province String @db.VarChar(2)
+
+  // Spedizione
+  shippingAvailable Boolean     @default(true) @map("shipping_available")
+  packageSize       PackageSize? @map("package_size")
+  shippingCost      Decimal?    @db.Decimal(10, 2) @map("shipping_cost")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relazioni
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos               ListingPhoto[]
+  platformPublications PlatformPublication[]
+  activityLog          ActivityLog[]
+
+  @@map("listings")
+}
+
+model ListingPhoto {
+  id        String   @id @default(cuid())
+  listingId String   @map("listing_id")
+  url       String
+  filename  String
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("listing_photos")
+}
+
+model PlatformPublication {
+  id                 String                    @id @default(cuid())
+  listingId          String                    @map("listing_id")
+  platform           Platform
+  status             PlatformPublicationStatus @default(DRAFT)
+  platformListingId  String?                   @map("platform_listing_id")
+  platformListingUrl String?                   @map("platform_listing_url")
+  publishedAt        DateTime?                 @map("published_at")
+  lastError          String?                   @map("last_error")
+  createdAt          DateTime                  @default(now()) @map("created_at")
+  updatedAt          DateTime                  @updatedAt @map("updated_at")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, platform])
+  @@map("platform_publications")
+}
+
+model ActivityLog {
+  id          String         @id @default(cuid())
+  listingId   String         @map("listing_id")
+  action      ActivityAction
+  description String
+  platform    Platform?
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
 }

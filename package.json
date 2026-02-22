@@ -10,12 +10,23 @@
     "postinstall": "nuxt prepare",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d && sleep 2 && npx prisma migrate reset --force",
+    "db:studio": "npx prisma studio",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "npx prisma db seed"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.3.0",
     "cloudinary": "^2.9.0",
     "nuxt": "^3.21.1",
+    "pg": "^8.18.0",
     "prisma": "^7.3.0",
     "vue": "^3.5.27",
     "vue-router": "^4.6.4"
@@ -23,9 +34,11 @@
   "devDependencies": {
     "@nuxt/test-utils": "^4.0.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
+    "@types/pg": "^8.16.0",
     "@vitejs/plugin-vue": "^6.0.4",
     "@vue/test-utils": "^2.4.6",
     "happy-dom": "^20.6.0",
+    "tsx": "^4.21.0",
     "unplugin-auto-import": "^21.0.0",
     "vitest": "^4.0.2"
   }

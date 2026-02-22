@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: danimarket-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: danimarket
+      POSTGRES_USER: danimarket
+      POSTGRES_PASSWORD: danimarket_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

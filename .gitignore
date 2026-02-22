@@ -25,3 +25,6 @@ logs
 !.env.example
 
 /generated/prisma
+
+# Uploads
+uploads/
