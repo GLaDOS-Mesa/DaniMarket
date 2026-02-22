@@ -10,6 +10,19 @@ export default defineNuxtConfig({
     configPath: 'tailwind.config.ts',
   },
 
+  nitro: {
+    experimental: {
+      openAPI: true,
+    },
+    openAPI: {
+      meta: {
+        title: 'DaniMarket API',
+        description: 'API REST per la gestione degli annunci DaniMarket',
+        version: '1.0.0',
+      },
+    },
+  },
+
   runtimeConfig: {
     // Server-side only
     databaseUrl: process.env.DATABASE_URL,
