@@ -27,6 +27,6 @@
     "@vue/test-utils": "^2.4.6",
     "happy-dom": "^20.6.0",
     "unplugin-auto-import": "^21.0.0",
-    "vitest": "^2.1.9"
+    "vitest": "^4.0.2"
   }
 }
