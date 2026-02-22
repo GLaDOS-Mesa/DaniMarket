@@ -34,7 +34,7 @@ async function main() {
 
   console.log(`👤 User created: ${user.name} (${user.email})`)
 
-  // ============ Annuncio 1 — Giacca di pelle nera ============
+  // ============ Listing 1 — Black leather jacket ============
 
   const listing1 = await prisma.listing.create({
     data: {
@@ -102,7 +102,7 @@ async function main() {
 
   console.log(`📦 Listing 1 created: ${listing1.title}`)
 
-  // ============ Annuncio 2 — iPhone 13 128GB ============
+  // ============ Listing 2 — iPhone 13 128GB ============
 
   const listing2 = await prisma.listing.create({
     data: {
@@ -141,7 +141,7 @@ async function main() {
 
   console.log(`📦 Listing 2 created: ${listing2.title}`)
 
-  // ============ Annuncio 3 — Scarpe Nike Air Max ============
+  // ============ Listing 3 — Nike Air Max shoes ============
 
   const listing3 = await prisma.listing.create({
     data: {

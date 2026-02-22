@@ -87,24 +87,24 @@ model Listing {
   userId String        @map("user_id")
   status ListingStatus @default(DRAFT)
 
-  // Info base
+  // Basic info
   title       String
   description String
   price       Decimal          @db.Decimal(10, 2)
   category    ListingCategory
   condition   ListingCondition
 
-  // Dettagli
+  // Details
   brand    String?
   size     String?
   colors   String[]
   material String?
 
-  // Località
+  // Location
   city     String
   province String @db.VarChar(2)
 
-  // Spedizione
+  // Shipping
   shippingAvailable Boolean     @default(true) @map("shipping_available")
   packageSize       PackageSize? @map("package_size")
   shippingCost      Decimal?    @db.Decimal(10, 2) @map("shipping_cost")
@@ -112,7 +112,7 @@ model Listing {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  // Relazioni
+  // Relations
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   photos               ListingPhoto[]
   platformPublications PlatformPublication[]
