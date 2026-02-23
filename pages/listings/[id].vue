@@ -87,16 +87,16 @@
           <div class="lg:col-span-2 space-y-6">
             <!-- Photo Gallery -->
             <ListingsDetailListingGallery
-              :images="listing.images"
+              :photos="listing.photos"
               :title="listing.title"
               :is-edit-mode="isEditMode"
-              :working-images="workingCopy?.images"
-              :is-modified="modifiedFields.has('images')"
-              :error="validationErrors.images"
+              :working-photos="workingCopy?.photos"
+              :is-modified="modifiedFields.has('photos')"
+              :error="validationErrors.photos"
               @open-lightbox="handleOpenLightbox"
-              @reorder="handleImageReorder"
-              @remove="handleImageRemove"
-              @add-photos="handleImageAdd"
+              @reorder="handlePhotoReorder"
+              @remove="handlePhotoRemove"
+              @add-photos="handlePhotoAdd"
             />
 
             <!-- Basic Info Card -->
@@ -126,7 +126,6 @@
               :shipping-available="listing.shippingAvailable"
               :shipping-cost="listing.shippingCost"
               :package-size="listing.packageSize"
-              :currency="listing.currency"
               :is-edit-mode="isEditMode"
               :working-city="workingCopy?.city"
               :working-province="workingCopy?.province"
@@ -158,8 +157,10 @@
 
             <!-- Platforms Card -->
             <ListingsDetailPlatformStatusSection
-              :publications="listing.publications"
+              :publications="listing.platformPublications"
               @add-platform="handleAddPlatform"
+              @remove-platform="handleRemovePlatform"
+              @publish-platform="handlePublishPlatform"
             />
 
             <!-- Stats Card -->
@@ -186,7 +187,7 @@
     <ListingsDetailUnsavedChangesModal
       :is-open="showUnsavedModal"
       :modified-fields-list="modifiedFieldsList"
-      :is-saving="isSavingFromModal"
+      :is-saving="isSaving"
       :is-valid="isValid"
       @save-and-exit="handleSaveAndExit"
       @discard-and-exit="handleDiscardAndExit"
@@ -197,66 +198,72 @@
 
 <script setup lang="ts">
 import type { Listing } from '~/types/listing'
-import { ListingStatus, PlatformPublicationStatus, platformLabels } from '~/types/listing'
-import { useListingsApi } from '~/composables/useListingsApi'
-import { useToast } from '~/composables/useToast'
-import { useListingDetail } from '~/composables/useListingDetail'
+import { PlatformPublicationStatus, platformLabels } from '~/types/listing'
 
 const route = useRoute()
-const router = useRouter()
-const { getById, update, remove } = useListingsApi()
-const { success, error } = useToast()
 
-// Edit mode state
 const {
+  // Listing state
+  listing,
+  isLoading,
+  isPublishing,
+  isDeleting,
+  isSaving,
+
+  // Edit mode state
   isEditMode,
   workingCopy,
   modifiedFields,
   hasChanges,
   isValid,
   validationErrors,
+
+  // Edit mode actions
   enterEditMode,
   exitEditMode,
   updateField,
   discardChanges,
   getFieldLabel,
+
+  // API actions
+  fetchListing,
+  saveListing,
+  publishListing,
+  deleteListing,
+  duplicateListing,
+  addPlatform,
+  removePlatform,
+  publishPlatform,
+
+  // Photo actions
+  addPhotos,
+  removePhoto,
+  reorderPhotos,
 } = useListingDetail()
 
-// State
-const listing = ref<Listing | null>(null)
-const isLoading = ref(true)
-const isPublishing = ref(false)
-const isDeleting = ref(false)
+// UI state (modals, navigation)
 const showDeleteModal = ref(false)
 const showUnsavedModal = ref(false)
-const isSavingFromModal = ref(false)
 const pendingNavigation = ref<(() => void) | null>(null)
 
-// Computed - list of modified field labels for the modal
+// Computed
 const modifiedFieldsList = computed(() => {
   return Array.from(modifiedFields.value).map(field => getFieldLabel(field))
 })
 
-// Computed
 const publishedPlatformNames = computed(() => {
   if (!listing.value) return []
-  return listing.value.publications
+  return listing.value.platformPublications
     .filter(pub => pub.status === PlatformPublicationStatus.PUBLISHED)
     .map(pub => platformLabels[pub.platform])
 })
 
 // Load listing on mount
-onMounted(async () => {
-  const id = route.params.id as string
-  const response = await getById(id)
-  listing.value = response.data
-  isLoading.value = false
-})
+onMounted(() => fetchListing(route.params.id as string))
 
 // Lightbox handler (placeholder for future implementation)
-const handleOpenLightbox = (index: number) => {
+const handleOpenLightbox = (_index: number) => {
   // TODO: Implement lightbox modal in future sprint
-  console.log('Open lightbox at index:', index)
 }
 
 // Action handlers
@@ -266,19 +273,7 @@ const handleEdit = () => {
   }
 }
 
-const handleSave = async () => {
-  if (!listing.value || !workingCopy.value) return
-
-  try {
-    // For now, just simulate save and update local state
-    // In production, this would call the API
-    Object.assign(listing.value, workingCopy.value)
-    exitEditMode()
-    success('Modifiche salvate con successo!')
-  } catch (err) {
-    error('Errore durante il salvataggio')
-  }
-}
+const handleSave = () => saveListing()
 
 const handleCancel = () => {
   if (hasChanges.value) {
@@ -289,24 +284,12 @@ const handleCancel = () => {
 }
 
 const handleSaveAndExit = async () => {
-  if (!listing.value || !workingCopy.value) return
+  await saveListing()
+  showUnsavedModal.value = false
 
-  isSavingFromModal.value = true
-  try {
-    Object.assign(listing.value, workingCopy.value)
-    exitEditMode()
-    showUnsavedModal.value = false
-    success('Modifiche salvate con successo!')
-
-    // Execute pending navigation if any
-    if (pendingNavigation.value) {
-      pendingNavigation.value()
-      pendingNavigation.value = null
-    }
-  } catch (err) {
-    error('Errore durante il salvataggio')
-  } finally {
-    isSavingFromModal.value = false
+  if (pendingNavigation.value) {
+    pendingNavigation.value()
+    pendingNavigation.value = null
   }
 }
 
@@ -315,7 +298,6 @@ const handleDiscardAndExit = () => {
   exitEditMode()
   showUnsavedModal.value = false
 
-  // Execute pending navigation if any
   if (pendingNavigation.value) {
     pendingNavigation.value()
     pendingNavigation.value = null
@@ -326,87 +308,50 @@ const handleFieldUpdate = (field: string, value: unknown) => {
   updateField(field as keyof Listing, value as Listing[keyof Listing])
 }
 
-// Image handlers
-const handleImageReorder = (fromIndex: number, toIndex: number) => {
-  if (!workingCopy.value?.images) return
+// Photo handlers
+const handlePhotoReorder = (fromIndex: number, toIndex: number) => {
+  if (!listing.value?.photos) return
 
-  const images = [...workingCopy.value.images]
-  const [removed] = images.splice(fromIndex, 1)
-  images.splice(toIndex, 0, removed)
-  updateField('images', images)
+  const photos = [...listing.value.photos]
+  const [moved] = photos.splice(fromIndex, 1)
+  photos.splice(toIndex, 0, moved)
+  const orderedIds = photos.map(p => p.id)
+  reorderPhotos(orderedIds)
 }
 
-const handleImageRemove = (index: number) => {
-  if (!workingCopy.value?.images) return
-
-  const images = [...workingCopy.value.images]
-  images.splice(index, 1)
-  updateField('images', images)
+const handlePhotoRemove = (index: number) => {
+  if (!listing.value?.photos[index]) return
+  removePhoto(listing.value.photos[index].id)
 }
 
-const handleImageAdd = async (files: File[]) => {
-  if (!workingCopy.value?.images) return
-
-  // In a real app, this would upload to Cloudinary and get URLs
-  // For now, create object URLs for preview
-  const newImageUrls = files.map(file => URL.createObjectURL(file))
-  const images = [...workingCopy.value.images, ...newImageUrls].slice(0, 6)
-  updateField('images', images)
+const handlePhotoAdd = (files: File[]) => {
+  addPhotos(files)
 }
 
-const handleAddPlatform = () => {
-  // TODO: Implement platform selection modal in future sprint
-  success('Selezione piattaforma in arrivo!')
+const handleAddPlatform = (platform: string) => {
+  addPlatform(platform)
 }
 
-const handlePublish = async () => {
-  if (!listing.value) return
-
-  isPublishing.value = true
-  try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // Update listing status
-    const response = await update(listing.value.id, { status: ListingStatus.ACTIVE })
-    if (response.data) {
-      listing.value = response.data
-      success('Annuncio pubblicato con successo!')
-    }
-  } catch (err) {
-    error('Errore durante la pubblicazione')
-  } finally {
-    isPublishing.value = false
-  }
+const handleRemovePlatform = (platform: string) => {
+  removePlatform(platform)
 }
 
-const handleDuplicate = () => {
-  if (!listing.value) return
+const handlePublishPlatform = (platform: string) => {
+  publishPlatform(platform)
+}
 
-  success('Annuncio duplicato — completa le foto e i dettagli')
-  router.push(`/listings/new?duplicateFrom=${listing.value.id}`)
+const handlePublish = () => publishListing()
+
+const handleDuplicate = async () => {
+  const newId = await duplicateListing()
+  if (newId) navigateTo(`/listings/new?duplicateFrom=${newId}`)
 }
 
 const handleDeleteConfirm = async () => {
-  if (!listing.value) return
-
-  isDeleting.value = true
-  try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    await remove(listing.value.id)
-    success('Annuncio eliminato con successo')
-
-    // Redirect to dashboard
-    setTimeout(() => {
-      router.push('/')
-    }, 500)
-  } catch (err) {
-    error('Errore durante l\'eliminazione')
+  const success = await deleteListing()
+  if (success) {
     showDeleteModal.value = false
-  } finally {
-    isDeleting.value = false
+    navigateTo('/')
   }
 }
 

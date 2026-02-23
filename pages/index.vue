@@ -47,7 +47,7 @@
 
     <!-- Loading state -->
     <div
-      v-if="isLoading"
+      v-if="pending"
       class="flex items-center justify-center py-16"
       role="status"
       aria-live="polite"
@@ -97,36 +97,18 @@
 </template>
 
 <script setup lang="ts">
-import type { Listing } from '~/types/listing'
 import { ListingStatus } from '~/types/listing'
-import { useListingsApi } from '~/composables/useListingsApi'
 
-const { getAll } = useListingsApi()
-
-// State
-const listings = ref<Listing[]>([])
-const isLoading = ref(true)
-const activeFilter = ref('all')
+const { pending, activeFilter, filteredListings, filterCounts, fetchListings } = useListings()
 
 // Load listings on mount
-onMounted(async () => {
-  const response = await getAll()
-  if (response.data) {
-    listings.value = response.data
-  }
-  isLoading.value = false
-})
+onMounted(() => fetchListings())
 
 // Computed
 const filters = computed(() => [
-  { label: 'Tutti', value: 'all', count: listings.value.length },
-  { label: 'Attivi', value: ListingStatus.ACTIVE, count: listings.value.filter((l) => l.status === ListingStatus.ACTIVE).length },
-  { label: 'Bozze', value: ListingStatus.DRAFT, count: listings.value.filter((l) => l.status === ListingStatus.DRAFT).length },
-  { label: 'Venduti', value: ListingStatus.SOLD, count: listings.value.filter((l) => l.status === ListingStatus.SOLD).length },
+  { label: 'Tutti', value: 'all', count: filterCounts.value.all },
+  { label: 'Attivi', value: ListingStatus.ACTIVE, count: filterCounts.value[ListingStatus.ACTIVE] },
+  { label: 'Bozze', value: ListingStatus.DRAFT, count: filterCounts.value[ListingStatus.DRAFT] },
+  { label: 'Venduti', value: ListingStatus.SOLD, count: filterCounts.value[ListingStatus.SOLD] },
 ])
-
-const filteredListings = computed(() => {
-  if (activeFilter.value === 'all') return listings.value
-  return listings.value.filter((l) => l.status === activeFilter.value)
-})
 </script>

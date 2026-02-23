@@ -95,11 +95,11 @@
           v-if="currentStep === totalSteps"
           type="button"
           class="px-6 py-2.5 border border-gray-300 rounded-lg font-medium text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-          :class="isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'"
-          :disabled="isSaving"
+          :class="isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'"
+          :disabled="isSubmitting"
           @click="handleSaveDraft"
         >
-          <span v-if="isSaving" class="inline-flex items-center gap-2">
+          <span v-if="isSubmitting" class="inline-flex items-center gap-2">
             <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -125,12 +125,12 @@
           v-if="currentStep === totalSteps"
           type="button"
           class="px-6 py-2.5 bg-primary-600 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-          :class="canGoNext && !isSaving ? 'hover:bg-primary-700' : 'opacity-50 cursor-not-allowed'"
-          :disabled="!canGoNext || isSaving"
-          :aria-disabled="!canGoNext || isSaving"
+          :class="canGoNext && !isSubmitting ? 'hover:bg-primary-700' : 'opacity-50 cursor-not-allowed'"
+          :disabled="!canGoNext || isSubmitting"
+          :aria-disabled="!canGoNext || isSubmitting"
           @click="handlePublish"
         >
-          <span v-if="isSaving" class="inline-flex items-center gap-2">
+          <span v-if="isSubmitting" class="inline-flex items-center gap-2">
             <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -151,39 +151,29 @@
 </template>
 
 <script setup lang="ts">
-import { useListingForm } from '~/composables/useListingForm'
-import { useListingsApi } from '~/composables/useListingsApi'
-import { useToast } from '~/composables/useToast'
-
 const route = useRoute()
-const { getById } = useListingsApi()
 
 const {
   currentStep,
   totalSteps,
   stepValidation,
+  isSubmitting,
   isStepCompleted,
   canGoNext,
   canGoToStep,
   goToStep,
   nextStep,
   prevStep,
-  resetForm,
-  populateFromListing,
+  submitAsDraft,
+  submitAndPublish,
+  loadDuplicateSource,
 } = useListingForm()
-
-const toast = useToast()
-
-const isSaving = ref(false)
 
 // Handle duplicate from existing listing
 onMounted(async () => {
   const duplicateFromId = route.query.duplicateFrom as string | undefined
   if (duplicateFromId) {
-    const response = await getById(duplicateFromId)
-    if (response.data) {
-      populateFromListing(response.data)
-    }
+    await loadDuplicateSource(duplicateFromId)
   }
 })
 
@@ -222,43 +212,14 @@ const getStepStatus = (stepId: number): string => {
 }
 
 const handleSaveDraft = async () => {
-  isSaving.value = true
-
-  try {
-    // TODO: Save listing to database with status DRAFT
-    // await createListing({ status: ListingStatus.DRAFT })
-
-    // On success: show toast, reset form and navigate to home
-    toast.success('Bozza salvata con successo! Potrai completarla in seguito.')
-    resetForm()
-    navigateTo('/')
-  } catch {
-    // On error: show toast and stay on current step
-    toast.error('Si è verificato un errore durante il salvataggio della bozza. Riprova.')
-  } finally {
-    isSaving.value = false
-  }
+  const id = await submitAsDraft()
+  if (id) navigateTo(`/listings/${id}`)
 }
 
 const handlePublish = async () => {
   if (!canGoNext.value) return
-
-  isSaving.value = true
-
-  try {
-    // TODO: Save listing to database with status ACTIVE and create platform publications
-    // await createListing({ status: ListingStatus.ACTIVE })
-
-    // On success: show toast, reset form and navigate to home
-    toast.success('Annuncio pubblicato con successo! Sarà presto visibile sulle piattaforme selezionate.')
-    resetForm()
-    navigateTo('/')
-  } catch {
-    // On error: show toast and stay on current step
-    toast.error('Si è verificato un errore durante la pubblicazione. Riprova.')
-  } finally {
-    isSaving.value = false
-  }
+  const id = await submitAndPublish()
+  if (id) navigateTo(`/listings/${id}`)
 }
 </script>
 
