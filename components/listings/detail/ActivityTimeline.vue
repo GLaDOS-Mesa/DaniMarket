@@ -27,7 +27,7 @@
         </span>
         <div class="flex-1 min-w-0">
           <p class="text-gray-900">{{ activity.description }}</p>
-          <p class="text-gray-500 text-xs">{{ formatRelativeDate(activity.timestamp) }}</p>
+          <p class="text-gray-500 text-xs">{{ formatRelativeDate(activity.createdAt) }}</p>
         </div>
       </li>
     </ul>

@@ -155,7 +155,7 @@ const statusLabel = computed(() => {
 const formattedPrice = computed(() => {
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
-    currency: props.listing.currency || 'EUR',
+    currency: 'EUR',
   }).format(props.listing.price)
 })
 
@@ -163,7 +163,7 @@ const formatShippingCost = computed(() => {
   if (!props.listing.shippingCost) return ''
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
-    currency: props.listing.currency || 'EUR',
+    currency: 'EUR',
   }).format(props.listing.shippingCost)
 })
 

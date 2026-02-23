@@ -82,7 +82,7 @@
           </label>
           <input
             id="province"
-            v-model="formData.province"
+            :value="provinceDisplay"
             type="text"
             readonly
             class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 text-gray-700"
@@ -251,6 +251,7 @@ const touchedFields = ref<Set<string>>(new Set())
 
 // Autocomplete state
 const cityQuery = ref(formData.value.city)
+const provinceDisplay = ref(formData.value.province) // Full display name for readonly field
 const allCities = ref<ItalianCity[]>([]) // All results from API
 const citySuggestions = ref<ItalianCity[]>([]) // Filtered results for display
 const showSuggestions = ref(false)
@@ -284,6 +285,7 @@ watch(cityQuery, async (newQuery) => {
   if (formData.value.city && newQuery !== formData.value.city) {
     formData.value.city = ''
     formData.value.province = ''
+    provinceDisplay.value = ''
   }
 
   // If less than 3 characters, reset everything
@@ -326,7 +328,8 @@ const onCityBlur = () => {
 
 const selectCity = (city: ItalianCity) => {
   formData.value.city = city.nome
-  formData.value.province = `${city.provincia} (${city.sigla})`
+  formData.value.province = city.sigla
+  provinceDisplay.value = `${city.provincia} (${city.sigla})`
   cityQuery.value = city.nome
   showSuggestions.value = false
   citySuggestions.value = []

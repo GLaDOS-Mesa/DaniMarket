@@ -2,13 +2,13 @@
   <NuxtLink
     :to="`/listings/${listing.id}`"
     class="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-    :aria-label="`${listing.title} - ${formatPrice(listing.price, listing.currency)} - ${statusLabel}`"
+    :aria-label="`${listing.title} - ${formattedPrice} - ${statusLabel}`"
   >
     <!-- Image -->
     <div class="aspect-square bg-gray-100 relative">
       <img
-        v-if="listing.images?.length"
-        :src="listing.images[0]"
+        v-if="listing.coverPhoto"
+        :src="listing.coverPhoto"
         :alt="`Foto di ${listing.title}`"
         class="w-full h-full object-cover"
       />
@@ -36,13 +36,13 @@
     <div class="p-4">
       <h3 class="font-medium text-gray-900 truncate">{{ listing.title }}</h3>
       <p class="text-lg font-bold text-primary-600 mt-1">
-        {{ formatPrice(listing.price, listing.currency) }}
+        {{ formattedPrice }}
       </p>
 
       <!-- Platform indicators -->
-      <div v-if="listing.publications?.length" class="flex gap-1.5 mt-3">
+      <div v-if="listing.platforms?.length" class="flex gap-1.5 mt-3">
         <PlatformLogo
-          v-for="pub in listing.publications"
+          v-for="pub in listing.platforms"
           :key="pub.platform"
           :platform="mapPlatformToLogo(pub.platform)"
           :status="mapStatusToLogo(pub.status)"
@@ -54,37 +54,34 @@
 </template>
 
 <script setup lang="ts">
-import type { Listing } from '~/types/listing'
-import { listingStatusLabels, ListingStatus, Platform, PlatformPublicationStatus } from '~/types/listing'
+import type { ListingSummary } from '~/types/listing'
+import { listingStatusLabels, ListingStatus } from '~/types/listing'
 
-// PlatformLogo expects uppercase values, our enums use lowercase
 type LogoPlatform = 'EBAY' | 'VINTED' | 'SUBITO' | 'FACEBOOK_MARKETPLACE'
 type LogoStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
 
 const props = defineProps<{
-  listing: Listing
+  listing: ListingSummary
 }>()
 
-// Map our Platform enum to PlatformLogo expected values
-const mapPlatformToLogo = (platform: Platform): LogoPlatform => {
-  const mapping: Record<Platform, LogoPlatform> = {
-    [Platform.EBAY]: 'EBAY',
-    [Platform.VINTED]: 'VINTED',
-    [Platform.SUBITO]: 'SUBITO',
-    [Platform.FACEBOOK]: 'FACEBOOK_MARKETPLACE',
+const mapPlatformToLogo = (platform: string): LogoPlatform => {
+  const mapping: Record<string, LogoPlatform> = {
+    EBAY: 'EBAY',
+    VINTED: 'VINTED',
+    SUBITO: 'SUBITO',
+    FACEBOOK: 'FACEBOOK_MARKETPLACE',
   }
-  return mapping[platform]
+  return mapping[platform] || 'EBAY'
 }
 
-// Map our PlatformPublicationStatus enum to PlatformLogo expected values
-const mapStatusToLogo = (status: PlatformPublicationStatus): LogoStatus => {
-  const mapping: Record<PlatformPublicationStatus, LogoStatus> = {
-    [PlatformPublicationStatus.DRAFT]: 'PENDING',
-    [PlatformPublicationStatus.PUBLISHED]: 'PUBLISHED',
-    [PlatformPublicationStatus.ERROR]: 'ERROR',
-    [PlatformPublicationStatus.REMOVED]: 'REMOVED',
+const mapStatusToLogo = (status: string): LogoStatus => {
+  const mapping: Record<string, LogoStatus> = {
+    DRAFT: 'PENDING',
+    PUBLISHED: 'PUBLISHED',
+    ERROR: 'ERROR',
+    REMOVED: 'REMOVED',
   }
-  return mapping[status]
+  return mapping[status] || 'PENDING'
 }
 
 const statusClasses = computed(() => {
@@ -101,10 +98,10 @@ const statusLabel = computed(() => {
   return listingStatusLabels[props.listing.status] || props.listing.status
 })
 
-function formatPrice(price: number, currency: string): string {
+const formattedPrice = computed(() => {
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
-    currency: currency || 'EUR',
-  }).format(price)
-}
+    currency: 'EUR',
+  }).format(props.listing.price)
+})
 </script>

@@ -386,7 +386,6 @@ const props = defineProps<{
   shippingAvailable: boolean
   shippingCost: number | null
   packageSize: PackageSize | null
-  currency?: string
   // Edit mode props
   isEditMode?: boolean
   workingCity?: string
@@ -476,7 +475,7 @@ const onCityBlur = () => {
 
 const selectCity = (city: ItalianCity) => {
   emit('update', 'city', city.nome)
-  emit('update', 'province', `${city.provincia} (${city.sigla})`)
+  emit('update', 'province', city.sigla)
   cityQuery.value = city.nome
   showSuggestions.value = false
   citySuggestions.value = []
@@ -565,7 +564,7 @@ const formattedShippingCost = computed(() => {
   if (!props.shippingCost) return ''
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
-    currency: props.currency || 'EUR',
+    currency: 'EUR',
   }).format(props.shippingCost)
 })
 </script>

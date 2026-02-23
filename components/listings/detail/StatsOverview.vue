@@ -1,5 +1,6 @@
 <template>
   <section
+    v-if="stats"
     class="bg-white rounded-xl shadow-sm p-6"
     aria-labelledby="stats-heading"
   >
@@ -35,6 +36,6 @@
 import type { ListingStats } from '~/types/listing'
 
 defineProps<{
-  stats: ListingStats
+  stats?: ListingStats
 }>()
 </script>

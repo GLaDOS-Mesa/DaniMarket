@@ -183,13 +183,13 @@
     <!-- View Mode -->
     <template v-else>
       <div
-        v-if="images.length"
+        v-if="photos.length"
         class="space-y-4"
       >
         <!-- Main image -->
         <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
           <img
-            :src="images[selectedIndex]"
+            :src="photos[selectedIndex]?.url"
             :alt="`Foto principale di ${title}`"
             class="w-full h-full object-cover cursor-pointer transition-transform hover:scale-105"
             @click="$emit('openLightbox', selectedIndex)"
@@ -198,14 +198,14 @@
 
         <!-- Thumbnails -->
         <div
-          v-if="images.length > 1"
+          v-if="photos.length > 1"
           class="flex gap-2 overflow-x-auto pb-2"
           role="listbox"
-          :aria-label="`Seleziona foto, ${images.length} disponibili`"
+          :aria-label="`Seleziona foto, ${photos.length} disponibili`"
         >
           <button
-            v-for="(image, index) in images"
-            :key="index"
+            v-for="(photo, index) in photos"
+            :key="photo.id"
             type="button"
             role="option"
             class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all"
@@ -215,7 +215,7 @@
             @click="selectedIndex = index"
           >
             <img
-              :src="image"
+              :src="photo.url"
               :alt="`Foto ${index + 1} di ${title}`"
               class="w-full h-full object-cover"
             >
@@ -251,12 +251,14 @@
 </template>
 
 <script setup lang="ts">
+import type { Photo } from '~/types/listing'
+
 const props = defineProps<{
-  images: string[]
+  photos: Photo[]
   title: string
   // Edit mode props
   isEditMode?: boolean
-  workingImages?: string[]
+  workingPhotos?: Photo[]
   isModified?: boolean
   error?: string
 }>()
@@ -274,12 +276,10 @@ const isDraggingNew = ref(false)
 const draggedIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
-// Display images based on mode
+// Display images based on mode (extract URLs from Photo objects)
 const displayImages = computed(() => {
-  if (props.isEditMode && props.workingImages) {
-    return props.workingImages
-  }
-  return props.images
+  const source = (props.isEditMode && props.workingPhotos) ? props.workingPhotos : props.photos
+  return source.map(p => p.url)
 })
 
 const dropzoneLabel = computed(() => {
@@ -366,9 +366,9 @@ const handleDragEnd = () => {
   dragOverIndex.value = null
 }
 
-// Reset selected index when images change
+// Reset selected index when photos change
 watch(
-  () => props.images,
+  () => props.photos,
   () => {
     selectedIndex.value = 0
   }
