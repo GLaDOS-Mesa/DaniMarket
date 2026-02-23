@@ -1,54 +1,54 @@
 // ========== ENUMS ==========
 
 export enum Platform {
-  EBAY = 'ebay',
-  VINTED = 'vinted',
-  SUBITO = 'subito',
-  FACEBOOK = 'facebook',
+  EBAY = 'EBAY',
+  VINTED = 'VINTED',
+  SUBITO = 'SUBITO',
+  FACEBOOK = 'FACEBOOK',
 }
 
 export enum ListingCategory {
-  CLOTHING = 'clothing',
-  SHOES = 'shoes',
-  ACCESSORIES = 'accessories',
-  ELECTRONICS = 'electronics',
-  HOME = 'home',
-  SPORTS = 'sports',
-  BOOKS_MEDIA = 'books_media',
-  GAMES = 'games',
-  OTHER = 'other',
+  CLOTHING = 'CLOTHING',
+  SHOES = 'SHOES',
+  ACCESSORIES = 'ACCESSORIES',
+  ELECTRONICS = 'ELECTRONICS',
+  HOME = 'HOME',
+  SPORTS = 'SPORTS',
+  BOOKS_MEDIA = 'BOOKS_MEDIA',
+  GAMES = 'GAMES',
+  OTHER = 'OTHER',
 }
 
 export enum ListingCondition {
-  NEW_WITH_TAGS = 'new_with_tags',
-  NEW_WITHOUT_TAGS = 'new_without_tags',
-  LIKE_NEW = 'like_new',
-  GOOD = 'good',
-  FAIR = 'fair',
-  DAMAGED = 'damaged',
+  NEW_WITH_TAGS = 'NEW_WITH_TAGS',
+  NEW_WITHOUT_TAGS = 'NEW_WITHOUT_TAGS',
+  LIKE_NEW = 'LIKE_NEW',
+  GOOD = 'GOOD',
+  FAIR = 'FAIR',
+  DAMAGED = 'DAMAGED',
 }
 
 export enum ListingColor {
-  BLACK = 'black',
-  WHITE = 'white',
-  GREY = 'grey',
-  BLUE = 'blue',
-  RED = 'red',
-  GREEN = 'green',
-  YELLOW = 'yellow',
-  PINK = 'pink',
-  ORANGE = 'orange',
-  PURPLE = 'purple',
-  BROWN = 'brown',
-  BEIGE = 'beige',
-  MULTICOLOR = 'multicolor',
-  OTHER = 'other',
+  BLACK = 'BLACK',
+  WHITE = 'WHITE',
+  GREY = 'GREY',
+  BLUE = 'BLUE',
+  RED = 'RED',
+  GREEN = 'GREEN',
+  YELLOW = 'YELLOW',
+  PINK = 'PINK',
+  ORANGE = 'ORANGE',
+  PURPLE = 'PURPLE',
+  BROWN = 'BROWN',
+  BEIGE = 'BEIGE',
+  MULTICOLOR = 'MULTICOLOR',
+  OTHER = 'OTHER',
 }
 
 export enum PackageSize {
-  SMALL = 'small',
-  MEDIUM = 'medium',
-  LARGE = 'large',
+  SMALL = 'SMALL',
+  MEDIUM = 'MEDIUM',
+  LARGE = 'LARGE',
 }
 
 // ========== INTERFACES ==========
@@ -85,6 +85,13 @@ export type ListingPhoto = {
   file: File
   rotation: 0 | 90 | 180 | 270
   displayRotation: number
+}
+
+export interface Photo {
+  id: string
+  url: string
+  filename: string
+  order: number
 }
 
 // ========== PLATFORM MAPPINGS ==========
@@ -413,15 +420,15 @@ export enum PlatformPublicationStatus {
 }
 
 export enum ActivityAction {
-  CREATED = 'created',
-  PUBLISHED = 'published',
-  UPDATED = 'updated',
-  REMOVED = 'removed',
-  SOLD = 'sold',
-  DRAFTED = 'drafted',
-  DELETED = 'deleted',
-  PLATFORM_ADDED = 'platform_added',
-  PLATFORM_REMOVED = 'platform_removed',
+  CREATED = 'CREATED',
+  PUBLISHED = 'PUBLISHED',
+  UPDATED = 'UPDATED',
+  REMOVED = 'REMOVED',
+  SOLD = 'SOLD',
+  DRAFTED = 'DRAFTED',
+  DELETED = 'DELETED',
+  PLATFORM_ADDED = 'PLATFORM_ADDED',
+  PLATFORM_REMOVED = 'PLATFORM_REMOVED',
 }
 
 // ========== LISTING DETAIL INTERFACES ==========
@@ -443,7 +450,7 @@ export interface ActivityLogEntry {
   action: ActivityAction
   description: string
   platform: Platform | null
-  timestamp: Date
+  createdAt: Date
   metadata: Record<string, unknown> | null
 }
 
@@ -456,22 +463,21 @@ export interface ListingStats {
 
 export interface Listing {
   id: string
-  // Step 1 — Foto (URLs instead of File objects)
-  images: string[]
+  // Step 1 — Foto
+  photos: Photo[]
 
   // Step 2 — Info base
   title: string
   description: string
   price: number
-  currency: string
   category: ListingCategory
   condition: ListingCondition
 
   // Step 3 — Dettagli
-  brand: string
-  size: string
+  brand: string | null
+  size: string | null
   colors: ListingColor[]
-  material: string
+  material: string | null
 
   // Step 4 — Spedizione
   city: string
@@ -480,20 +486,33 @@ export interface Listing {
   packageSize: PackageSize | null
   shippingCost: number | null
 
-  // Step 5 — Piattaforme
-  platforms: Platform[]
-
   // Status & Publications
   status: ListingStatus
-  publications: PlatformPublication[]
+  platformPublications: PlatformPublication[]
 
-  // Activity & Stats
+  // Activity
   activityLog: ActivityLogEntry[]
-  stats: ListingStats
+
+  // Stats (optional — not returned by backend)
+  stats?: ListingStats
 
   // Timestamps
   createdAt: Date
   updatedAt: Date
+}
+
+// Summary format returned by GET /api/listings (list endpoint)
+export interface ListingSummary {
+  id: string
+  title: string
+  price: number
+  status: ListingStatus
+  category: string
+  condition: string
+  coverPhoto: string | null
+  platforms: { platform: string; status: string }[]
+  createdAt: string
+  updatedAt: string
 }
 
 // ========== STATUS LABELS ==========
