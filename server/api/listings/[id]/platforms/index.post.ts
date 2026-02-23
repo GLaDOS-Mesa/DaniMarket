@@ -51,21 +51,32 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if platform already exists
-    const alreadyAdded = listing.platformPublications.some(
+    const existing = listing.platformPublications.find(
       (p) => p.platform === platform,
     )
-    if (alreadyAdded) {
+
+    if (existing && existing.status !== 'REMOVED') {
       return errorResponse(event, 'Piattaforma già aggiunta', 400)
     }
 
     const publication = await prisma.$transaction(async (tx) => {
-      const created = await tx.platformPublication.create({
-        data: {
-          listingId: id,
-          platform,
-          status: 'DRAFT',
-        },
-      })
+      let result
+
+      if (existing && existing.status === 'REMOVED') {
+        // Re-activate previously removed platform
+        result = await tx.platformPublication.update({
+          where: { id: existing.id },
+          data: { status: 'DRAFT' },
+        })
+      } else {
+        result = await tx.platformPublication.create({
+          data: {
+            listingId: id,
+            platform,
+            status: 'DRAFT',
+          },
+        })
+      }
 
       await tx.activityLog.create({
         data: {
@@ -76,7 +87,7 @@ export default defineEventHandler(async (event) => {
         },
       })
 
-      return created
+      return result
     })
 
     return successResponse(publication, 201)

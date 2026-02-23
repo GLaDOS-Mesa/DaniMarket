@@ -11,13 +11,13 @@
     </h2>
 
     <ul
-      v-if="publications.length"
+      v-if="activePublications.length"
       class="space-y-3"
     >
       <li
-        v-for="pub in publications"
+        v-for="pub in activePublications"
         :key="pub.id"
-        class="flex items-center justify-between p-3 rounded-lg bg-gray-50"
+        class="flex items-center justify-between p-3 rounded-lg bg-gray-50 group"
       >
         <div class="flex items-center gap-3">
           <PlatformLogo
@@ -27,18 +27,124 @@
           />
           <span class="font-medium text-gray-900">{{ platformLabels[pub.platform] }}</span>
         </div>
-        <span
-          class="px-2.5 py-1 rounded-full text-xs font-medium"
-          :class="statusClasses(pub.status)"
-        >
-          {{ publicationStatusLabels[pub.status] }}
-        </span>
+        <div class="flex items-center gap-2">
+          <span
+            class="px-2.5 py-1 rounded-full text-xs font-medium"
+            :class="statusClasses(pub.status)"
+          >
+            {{ publicationStatusLabels[pub.status] }}
+          </span>
+          <!-- Publish button (shown for DRAFT and ERROR) -->
+          <button
+            v-if="pub.status === PlatformPublicationStatus.DRAFT || pub.status === PlatformPublicationStatus.ERROR"
+            type="button"
+            class="px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            :aria-label="`Pubblica su ${platformLabels[pub.platform]}`"
+            @click="emit('publishPlatform', pub.platform)"
+          >
+            Pubblica
+          </button>
+          <!-- Remove button -->
+          <button
+            type="button"
+            class="w-6 h-6 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            :aria-label="`Rimuovi ${platformLabels[pub.platform]}`"
+            @click="emit('removePlatform', pub.platform)"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
       </li>
     </ul>
 
-    <!-- Empty state -->
+    <!-- Add platform button -->
     <div
-      v-else
+      v-if="availablePlatforms.length > 0"
+      class="mt-4"
+    >
+      <!-- Platform picker -->
+      <div
+        v-if="showPicker"
+        class="space-y-2"
+      >
+        <p class="text-sm text-gray-600 font-medium">Seleziona piattaforma:</p>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="platform in availablePlatforms"
+            :key="platform"
+            type="button"
+            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+            :aria-label="`Aggiungi ${platformLabels[platform]}`"
+            @click="handleSelectPlatform(platform)"
+          >
+            <PlatformLogo
+              :platform="mapPlatformToLogo(platform)"
+              status="PENDING"
+              size="sm"
+            />
+            {{ platformLabels[platform] }}
+          </button>
+        </div>
+        <button
+          type="button"
+          class="text-sm text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded px-1 py-0.5"
+          @click="showPicker = false"
+        >
+          Annulla
+        </button>
+      </div>
+
+      <!-- Toggle button -->
+      <button
+        v-else
+        type="button"
+        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+        @click="showPicker = true"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+        Aggiungi piattaforma
+      </button>
+    </div>
+
+    <!-- Empty state (no active publications AND no platforms available) -->
+    <div
+      v-if="activePublications.length === 0 && availablePlatforms.length === 0"
+      class="text-center py-4"
+    >
+      <p class="text-gray-500 text-sm">
+        Tutte le piattaforme sono già state aggiunte.
+      </p>
+    </div>
+
+    <!-- Empty state (no active publications but platforms available) -->
+    <div
+      v-else-if="activePublications.length === 0 && !showPicker"
       class="text-center py-4"
     >
       <div
@@ -59,30 +165,9 @@
           />
         </svg>
       </div>
-      <p class="text-gray-500 text-sm mb-3">
+      <p class="text-gray-500 text-sm">
         Nessuna piattaforma selezionata
       </p>
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
-        @click="$emit('addPlatform')"
-      >
-        <svg
-          class="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
-        Aggiungi piattaforma
-      </button>
     </div>
   </section>
 </template>
@@ -100,13 +185,33 @@ import type { PlatformPublication } from '~/types/listing'
 type LogoPlatform = 'EBAY' | 'VINTED' | 'SUBITO' | 'FACEBOOK_MARKETPLACE'
 type LogoStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
 
-defineProps<{
+const props = defineProps<{
   publications: PlatformPublication[]
 }>()
 
-defineEmits<{
-  (e: 'addPlatform'): void
+const emit = defineEmits<{
+  (e: 'addPlatform', platform: Platform): void
+  (e: 'removePlatform', platform: Platform): void
+  (e: 'publishPlatform', platform: Platform): void
 }>()
+
+const showPicker = ref(false)
+
+// Active publications (exclude REMOVED)
+const activePublications = computed(() => {
+  return props.publications.filter(p => p.status !== PlatformPublicationStatus.REMOVED)
+})
+
+// Platforms not yet added (or removed) — available for (re-)adding
+const availablePlatforms = computed(() => {
+  const activePlatforms = new Set(activePublications.value.map(p => p.platform))
+  return Object.values(Platform).filter(p => !activePlatforms.has(p))
+})
+
+const handleSelectPlatform = (platform: Platform) => {
+  emit('addPlatform', platform)
+  showPicker.value = false
+}
 
 const mapPlatformToLogo = (platform: Platform): LogoPlatform => {
   const mapping: Record<Platform, LogoPlatform> = {
