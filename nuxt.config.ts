@@ -21,6 +21,9 @@ export default defineNuxtConfig({
         version: '1.0.0',
       },
     },
+    publicAssets: [
+      { dir: 'uploads', baseURL: '/uploads', maxAge: 60 * 60 * 24 * 7 },
+    ],
   },
 
   runtimeConfig: {
