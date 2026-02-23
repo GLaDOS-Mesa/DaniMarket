@@ -14,11 +14,13 @@ describe('useListingDetail', () => {
   // Mock listing for testing
   const createMockListing = (): Listing => ({
     id: 'listing-123',
-    images: ['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg'],
+    photos: [
+      { id: 'photo-1', url: 'https://example.com/photo1.jpg', filename: 'photo1.jpg', order: 0 },
+      { id: 'photo-2', url: 'https://example.com/photo2.jpg', filename: 'photo2.jpg', order: 1 },
+    ],
     title: 'Test Product',
     description: 'Test description',
     price: 99,
-    currency: 'EUR',
     category: ListingCategory.CLOTHING,
     condition: ListingCondition.LIKE_NEW,
     brand: 'Nike',
@@ -30,11 +32,9 @@ describe('useListingDetail', () => {
     shippingAvailable: true,
     packageSize: PackageSize.MEDIUM,
     shippingCost: 5,
-    platforms: [Platform.VINTED, Platform.EBAY],
     status: ListingStatus.ACTIVE,
-    publications: [],
+    platformPublications: [],
     activityLog: [],
-    stats: { totalViews: 100, favorites: 10, messages: 5, daysOnline: 30 },
     createdAt: new Date(),
     updatedAt: new Date(),
   })
@@ -189,22 +189,22 @@ describe('useListingDetail', () => {
   })
 
   describe('validation', () => {
-    it('should require images', () => {
+    it('should require photos', () => {
       const { enterEditMode, updateField, validationErrors } = useListingDetail()
       enterEditMode(createMockListing())
 
-      updateField('images', [])
+      updateField('photos', [])
 
-      expect(validationErrors.value.images).toBe('Carica almeno una foto')
+      expect(validationErrors.value.photos).toBe('Carica almeno una foto')
     })
 
-    it('should limit images to 6', () => {
+    it('should limit photos to 6', () => {
       const { enterEditMode, updateField, validationErrors } = useListingDetail()
       enterEditMode(createMockListing())
 
-      updateField('images', Array(7).fill('https://example.com/photo.jpg'))
+      updateField('photos', Array(7).fill({ id: 'x', url: 'https://example.com/photo.jpg', filename: 'photo.jpg', order: 0 }))
 
-      expect(validationErrors.value.images).toBe('Massimo 6 foto consentite')
+      expect(validationErrors.value.photos).toBe('Massimo 6 foto consentite')
     })
 
     it('should require title', () => {

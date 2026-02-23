@@ -1,9 +1,11 @@
 import {
   type Listing,
+  type Photo,
   type ListingCategory,
   type ListingCondition,
   type ListingColor,
   type PackageSize,
+  ListingCategory as LC,
   categoriesRequiringSize,
 } from '~/types/listing'
 
@@ -11,16 +13,16 @@ import {
 
 // Editable fields from Listing (excludes readonly fields like id, status, publications, etc.)
 export interface EditableListingData {
-  images: string[]
+  photos: Photo[]
   title: string
   description: string
   price: number
   category: ListingCategory
   condition: ListingCondition
-  brand: string
-  size: string
+  brand: string | null
+  size: string | null
   colors: ListingColor[]
-  material: string
+  material: string | null
   city: string
   province: string
   shippingAvailable: boolean
@@ -28,36 +30,10 @@ export interface EditableListingData {
   shippingCost: number | null
 }
 
-interface UseListingDetailReturn {
-  // State
-  isEditMode: Ref<boolean>
-  workingCopy: Ref<Partial<Listing> | null>
-  originalSnapshot: Ref<Partial<Listing> | null>
-  isSaving: Ref<boolean>
-
-  // Change tracking
-  modifiedFields: ComputedRef<Set<string>>
-  hasChanges: ComputedRef<boolean>
-
-  // Validation
-  validationErrors: ComputedRef<Record<string, string>>
-  isValid: ComputedRef<boolean>
-
-  // Actions
-  enterEditMode: (listing: Listing) => void
-  exitEditMode: () => void
-  updateField: <K extends keyof Listing>(field: K, value: Listing[K]) => void
-  discardChanges: () => void
-  isFieldModified: (field: string) => boolean
-
-  // Field labels for UI
-  getFieldLabel: (field: string) => string
-}
-
 // ========== FIELD LABELS (Italian) ==========
 
 const fieldLabels: Record<string, string> = {
-  images: 'Foto',
+  photos: 'Foto',
   title: 'Titolo',
   description: 'Descrizione',
   price: 'Prezzo',
@@ -77,7 +53,7 @@ const fieldLabels: Record<string, string> = {
 // ========== EDITABLE FIELDS LIST ==========
 
 const editableFields: (keyof Listing)[] = [
-  'images',
+  'photos',
   'title',
   'description',
   'price',
@@ -96,9 +72,16 @@ const editableFields: (keyof Listing)[] = [
 
 // ========== SINGLETON STATE ==========
 
+// Edit mode state
 const isEditMode = ref(false)
 const workingCopy = ref<Partial<Listing> | null>(null)
 const originalSnapshot = ref<Partial<Listing> | null>(null)
+
+// Listing state
+const listing = ref<Listing | null>(null)
+const isLoading = ref(false)
+const isPublishing = ref(false)
+const isDeleting = ref(false)
 const isSaving = ref(false)
 
 // ========== HELPER FUNCTIONS ==========
@@ -148,7 +131,7 @@ const areValuesEqual = (a: unknown, b: unknown): boolean => {
     const keysB = Object.keys(b as object)
     if (keysA.length !== keysB.length) return false
     return keysA.every((key) =>
-      areValuesEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
+      areValuesEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
     )
   }
 
@@ -158,7 +141,10 @@ const areValuesEqual = (a: unknown, b: unknown): boolean => {
 
 // ========== COMPOSABLE ==========
 
-export const useListingDetail = (): UseListingDetailReturn => {
+export const useListingDetail = () => {
+  const { get, post, put, del, uploadPhotos } = useApi()
+  const toast = useToast()
+
   // ========== CHANGE TRACKING ==========
 
   const modifiedFields = computed((): Set<string> => {
@@ -199,11 +185,11 @@ export const useListingDetail = (): UseListingDetailReturn => {
 
     const data = workingCopy.value
 
-    // Images validation
-    if (!data.images || data.images.length === 0) {
-      errors.images = 'Carica almeno una foto'
-    } else if (data.images.length > 6) {
-      errors.images = 'Massimo 6 foto consentite'
+    // Photos validation
+    if (!data.photos || data.photos.length === 0) {
+      errors.photos = 'Carica almeno una foto'
+    } else if (data.photos.length > 6) {
+      errors.photos = 'Massimo 6 foto consentite'
     }
 
     // Title validation
@@ -234,7 +220,7 @@ export const useListingDetail = (): UseListingDetailReturn => {
     }
 
     // Brand validation (required for all categories except OTHER)
-    if (data.category && data.category !== 'other' && !data.brand?.trim()) {
+    if (data.category && data.category !== LC.OTHER && !data.brand?.trim()) {
       errors.brand = 'La marca è obbligatoria'
     }
 
@@ -269,13 +255,12 @@ export const useListingDetail = (): UseListingDetailReturn => {
     return Object.keys(validationErrors.value).length === 0
   })
 
-  // ========== ACTIONS ==========
+  // ========== EDIT MODE ACTIONS ==========
 
-  const enterEditMode = (listing: Listing): void => {
-    // Create a deep clone of editable fields for working copy
+  const enterEditMode = (source: Listing): void => {
     const editableData: Partial<Listing> = {}
     for (const field of editableFields) {
-      ;(editableData as Record<string, unknown>)[field] = deepClone(listing[field])
+      ;(editableData as Record<string, unknown>)[field] = deepClone(source[field])
     }
 
     workingCopy.value = editableData
@@ -306,12 +291,237 @@ export const useListingDetail = (): UseListingDetailReturn => {
     return fieldLabels[field] || field
   }
 
+  // ========== API ACTIONS ==========
+
+  async function fetchListing(id: string) {
+    isLoading.value = true
+    try {
+      const data = await get<Listing>(`/api/listings/${id}`)
+      // Prisma Decimal fields are serialized as strings in JSON — convert to numbers
+      data.price = Number(data.price)
+      if (data.shippingCost != null) {
+        data.shippingCost = Number(data.shippingCost)
+      }
+      listing.value = data
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Annuncio non trovato'
+      toast.error(message)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function saveListing() {
+    if (!listing.value || !workingCopy.value || !hasChanges.value) return
+    isSaving.value = true
+    try {
+      const changedData: Record<string, any> = {}
+      for (const field of modifiedFields.value) {
+        changedData[field] = (workingCopy.value as Record<string, unknown>)[field]
+      }
+      await put(`/api/listings/${listing.value.id}`, changedData)
+      await fetchListing(listing.value.id)
+      exitEditMode()
+      toast.success('Modifiche salvate con successo!')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore durante il salvataggio'
+      toast.error(message)
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  async function publishListing() {
+    if (!listing.value) return
+    isPublishing.value = true
+    try {
+      await post(`/api/listings/${listing.value.id}/publish`)
+      await fetchListing(listing.value.id)
+      toast.success('Annuncio pubblicato con successo!')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore durante la pubblicazione'
+      toast.error(message)
+    } finally {
+      isPublishing.value = false
+    }
+  }
+
+  async function saveAsDraft() {
+    if (!listing.value) return
+    isSaving.value = true
+    try {
+      if (hasChanges.value) {
+        const changedData: Record<string, any> = {}
+        for (const field of modifiedFields.value) {
+          changedData[field] = (workingCopy.value as Record<string, unknown>)[field]
+        }
+        await put(`/api/listings/${listing.value.id}`, changedData)
+      }
+      await post(`/api/listings/${listing.value.id}/draft`)
+      await fetchListing(listing.value.id)
+      exitEditMode()
+      toast.success('Salvato come bozza')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore durante il salvataggio'
+      toast.error(message)
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  async function saveAndRepublish() {
+    if (!listing.value) return
+    isSaving.value = true
+    try {
+      if (hasChanges.value) {
+        const changedData: Record<string, any> = {}
+        for (const field of modifiedFields.value) {
+          changedData[field] = (workingCopy.value as Record<string, unknown>)[field]
+        }
+        await put(`/api/listings/${listing.value.id}`, changedData)
+      }
+      await post(`/api/listings/${listing.value.id}/publish`)
+      await fetchListing(listing.value.id)
+      exitEditMode()
+      toast.success('Modifiche salvate e annuncio ripubblicato!')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore durante la pubblicazione'
+      toast.error(message)
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  async function deleteListing(): Promise<boolean> {
+    if (!listing.value) return false
+    isDeleting.value = true
+    try {
+      await del(`/api/listings/${listing.value.id}`)
+      toast.success('Annuncio eliminato con successo')
+      return true
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore durante l\'eliminazione'
+      toast.error(message)
+      return false
+    } finally {
+      isDeleting.value = false
+    }
+  }
+
+  async function duplicateListing(): Promise<string | null> {
+    if (!listing.value) return null
+    try {
+      const newListing = await post<Listing>(`/api/listings/${listing.value.id}/duplicate`)
+      toast.success('Annuncio duplicato — completa le foto e i dettagli')
+      return newListing.id
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore durante la duplicazione'
+      toast.error(message)
+      return null
+    }
+  }
+
+  // ========== PLATFORM ACTIONS ==========
+
+  async function addPlatform(platform: string) {
+    if (!listing.value) return
+    try {
+      await post(`/api/listings/${listing.value.id}/platforms`, { platform })
+      await fetchListing(listing.value.id)
+      toast.success('Piattaforma aggiunta')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore nell\'aggiunta della piattaforma'
+      toast.error(message)
+    }
+  }
+
+  async function publishPlatform(platform: string) {
+    if (!listing.value) return
+    try {
+      await post(`/api/listings/${listing.value.id}/platforms/${platform}/publish`)
+      await fetchListing(listing.value.id)
+      toast.success('Pubblicato sulla piattaforma')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore nella pubblicazione'
+      toast.error(message)
+    }
+  }
+
+  async function removePlatform(platform: string) {
+    if (!listing.value) return
+    try {
+      await del(`/api/listings/${listing.value.id}/platforms/${platform}`)
+      await fetchListing(listing.value.id)
+      toast.success('Rimosso dalla piattaforma')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore nella rimozione'
+      toast.error(message)
+    }
+  }
+
+  // ========== PHOTO ACTIONS ==========
+
+  // Sync working copy photos with the latest listing data after server-side photo changes
+  function syncWorkingCopyPhotos() {
+    if (isEditMode.value && workingCopy.value && listing.value) {
+      workingCopy.value.photos = deepClone(listing.value.photos)
+      if (originalSnapshot.value) {
+        originalSnapshot.value.photos = deepClone(listing.value.photos)
+      }
+    }
+  }
+
+  async function addPhotos(files: File[]) {
+    if (!listing.value) return
+    try {
+      await uploadPhotos(listing.value.id, files)
+      await fetchListing(listing.value.id)
+      syncWorkingCopyPhotos()
+      toast.success(files.length > 1 ? `${files.length} foto aggiunte` : 'Foto aggiunta')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore nell\'upload delle foto'
+      toast.error(message)
+    }
+  }
+
+  async function removePhoto(photoId: string) {
+    if (!listing.value) return
+    try {
+      await del(`/api/listings/${listing.value.id}/photos/${photoId}`)
+      await fetchListing(listing.value.id)
+      syncWorkingCopyPhotos()
+      toast.success('Foto rimossa')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore nella rimozione della foto'
+      toast.error(message)
+    }
+  }
+
+  async function reorderPhotos(orderedIds: string[]) {
+    if (!listing.value) return
+    try {
+      await put(`/api/listings/${listing.value.id}/photos/reorder`, { orderedIds })
+      await fetchListing(listing.value.id)
+      syncWorkingCopyPhotos()
+      toast.success('Ordine foto aggiornato')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore nel riordinamento delle foto'
+      toast.error(message)
+    }
+  }
+
   return {
-    // State
+    // Listing state
+    listing,
+    isLoading,
+    isPublishing,
+    isDeleting,
+    isSaving,
+
+    // Edit mode state
     isEditMode,
     workingCopy,
     originalSnapshot,
-    isSaving,
 
     // Change tracking
     modifiedFields,
@@ -321,14 +531,31 @@ export const useListingDetail = (): UseListingDetailReturn => {
     validationErrors,
     isValid,
 
-    // Actions
+    // Edit mode actions
     enterEditMode,
     exitEditMode,
     updateField,
     discardChanges,
     isFieldModified,
-
-    // Field labels
     getFieldLabel,
+
+    // API actions
+    fetchListing,
+    saveListing,
+    saveAsDraft,
+    saveAndRepublish,
+    publishListing,
+    deleteListing,
+    duplicateListing,
+
+    // Platform actions
+    addPlatform,
+    publishPlatform,
+    removePlatform,
+
+    // Photo actions
+    addPhotos,
+    removePhoto,
+    reorderPhotos,
   }
 }

@@ -3,6 +3,8 @@ import {
   type ListingPhoto,
   type Platform,
   type Listing,
+  ListingCategory,
+  Platform as PlatformEnum,
   platformRequiredFields,
   categoriesRequiringSize,
 } from '~/types/listing'
@@ -19,6 +21,7 @@ interface UseListingFormReturn {
   currentStep: Ref<number>
   totalSteps: number
   isDuplicating: Ref<boolean>
+  isSubmitting: Ref<boolean>
   stepValidation: ComputedRef<StepValidation>
   isStepCompleted: (step: number) => boolean
   canGoNext: ComputedRef<boolean>
@@ -37,6 +40,9 @@ interface UseListingFormReturn {
   clearDraft: () => void
   resetForm: () => void
   populateFromListing: (listing: Listing) => void
+  submitAsDraft: () => Promise<string | null>
+  submitAndPublish: () => Promise<string | null>
+  loadDuplicateSource: (id: string) => Promise<void>
 }
 
 const createInitialFormData = (): ListingFormData => ({
@@ -72,6 +78,7 @@ const formData = ref<ListingFormData>(createInitialFormData())
 const currentStep = ref(1)
 const totalSteps = 5
 const isDuplicating = ref(false)
+const isSubmitting = ref(false)
 
 // Validation functions that use the shared state
 const validateStep1 = (): StepValidation => {
@@ -119,7 +126,7 @@ const validateStep3 = (): StepValidation => {
   const category = formData.value.category
 
   // Brand is required for all categories except OTHER
-  if (category && category !== 'other' && !formData.value.brand.trim()) {
+  if (category && category !== ListingCategory.OTHER && !formData.value.brand.trim()) {
     errors.brand = 'La marca è obbligatoria'
   }
 
@@ -190,6 +197,30 @@ const isStepCompleted = (step: number): boolean => {
   // A step is only completed if all previous steps are valid AND this step is valid
   return areAllPreviousStepsValid(step) && validateStep(step).isValid
 }
+
+// ========== PAYLOAD BUILDER ==========
+
+function buildPayload() {
+  return {
+    title: formData.value.title,
+    description: formData.value.description,
+    price: formData.value.price,
+    category: formData.value.category,
+    condition: formData.value.condition,
+    brand: formData.value.brand || undefined,
+    size: formData.value.size || undefined,
+    colors: formData.value.colors,
+    material: formData.value.material || undefined,
+    city: formData.value.city,
+    province: formData.value.province,
+    shippingAvailable: formData.value.shippingAvailable,
+    packageSize: formData.value.packageSize,
+    shippingCost: formData.value.shippingCost,
+    platforms: formData.value.platforms,
+  }
+}
+
+// ========== COMPOSABLE ==========
 
 export const useListingForm = (): UseListingFormReturn => {
   const stepValidation = computed((): StepValidation => {
@@ -262,7 +293,7 @@ export const useListingForm = (): UseListingFormReturn => {
       const value = formData.value[field]
 
       // Special handling for size on Vinted (only required for CLOTHING/SHOES)
-      if (field === 'size' && platform === 'vinted') {
+      if (field === 'size' && platform === PlatformEnum.VINTED) {
         const category = formData.value.category
         if (category && categoriesRequiringSize.includes(category) && !value) {
           missingFields.push(field)
@@ -336,11 +367,11 @@ export const useListingForm = (): UseListingFormReturn => {
     formData.value = createInitialFormData()
     currentStep.value = 1
     isDuplicating.value = false
+    isSubmitting.value = false
     clearDraft()
   }
 
   const populateFromListing = (listing: Listing) => {
-    // Populate form with listing data, excluding id, status, photos, publications, activityLog, stats, dates
     formData.value = {
       photos: [], // Photos must be re-uploaded
       title: `Copia di — ${listing.title}`,
@@ -348,19 +379,88 @@ export const useListingForm = (): UseListingFormReturn => {
       price: listing.price,
       category: listing.category,
       condition: listing.condition,
-      brand: listing.brand,
-      size: listing.size,
+      brand: listing.brand || '',
+      size: listing.size || '',
       colors: [...listing.colors],
-      material: listing.material,
+      material: listing.material || '',
       city: listing.city,
       province: listing.province,
       shippingAvailable: listing.shippingAvailable,
       packageSize: listing.packageSize,
       shippingCost: listing.shippingCost,
-      platforms: [...listing.platforms],
+      platforms: listing.platformPublications.map((p) => p.platform),
     }
     currentStep.value = 1 // Start from Step 1 (Photos)
     isDuplicating.value = true
+  }
+
+  // ========== API SUBMIT METHODS ==========
+
+  async function submitAsDraft(): Promise<string | null> {
+    const { post, uploadPhotos } = useApi()
+    const toast = useToast()
+    isSubmitting.value = true
+    try {
+      const created = await post<Listing>('/api/listings', buildPayload())
+
+      if (formData.value.photos.length > 0) {
+        const files = formData.value.photos.map((p) => p.file)
+        await uploadPhotos(created.id, files)
+      }
+
+      clearDraft()
+      resetForm()
+      toast.success('Bozza salvata con successo!')
+      return created.id
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore durante il salvataggio della bozza'
+      toast.error(message)
+      return null
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  async function submitAndPublish(): Promise<string | null> {
+    const { post, uploadPhotos } = useApi()
+    const toast = useToast()
+    isSubmitting.value = true
+    try {
+      const created = await post<Listing>('/api/listings', buildPayload())
+
+      if (formData.value.photos.length > 0) {
+        const files = formData.value.photos.map((p) => p.file)
+        await uploadPhotos(created.id, files)
+      }
+
+      await post(`/api/listings/${created.id}/publish`)
+
+      clearDraft()
+      resetForm()
+      toast.success('Annuncio pubblicato con successo!')
+      return created.id
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore durante la pubblicazione'
+      toast.error(message)
+      return null
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  async function loadDuplicateSource(id: string): Promise<void> {
+    const { get } = useApi()
+    try {
+      const source = await get<Listing>(`/api/listings/${id}`)
+      // Prisma Decimal fields are serialized as strings in JSON — convert to numbers
+      source.price = Number(source.price)
+      if (source.shippingCost != null) {
+        source.shippingCost = Number(source.shippingCost)
+      }
+      populateFromListing(source)
+    } catch {
+      // Silently fail — form stays empty
+    }
   }
 
   return {
@@ -368,6 +468,7 @@ export const useListingForm = (): UseListingFormReturn => {
     currentStep,
     totalSteps,
     isDuplicating,
+    isSubmitting,
     stepValidation,
     isStepCompleted,
     canGoNext,
@@ -386,5 +487,8 @@ export const useListingForm = (): UseListingFormReturn => {
     clearDraft,
     resetForm,
     populateFromListing,
+    submitAsDraft,
+    submitAndPublish,
+    loadDuplicateSource,
   }
 }
