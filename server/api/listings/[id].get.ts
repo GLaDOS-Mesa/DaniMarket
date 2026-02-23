@@ -15,23 +15,13 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   try {
-    const userId = await DEV_USER_ID()
     const id = getRouterParam(event, 'id')
-
     if (!id) {
       return errorResponse(event, 'ID annuncio mancante', 400)
     }
 
-    const listing = await prisma.listing.findUnique({
-      where: { id },
-      include: {
-        photos: { orderBy: { order: 'asc' } },
-        platformPublications: true,
-        activityLog: { orderBy: { createdAt: 'desc' } },
-      },
-    })
-
-    if (!listing || listing.userId !== userId) {
+    const listing = await getOwnedListing(id)
+    if (!listing) {
       return errorResponse(event, 'Annuncio non trovato', 404)
     }
 

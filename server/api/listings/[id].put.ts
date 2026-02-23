@@ -86,11 +86,15 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   try {
-    const userId = await DEV_USER_ID()
     const id = getRouterParam(event, 'id')
 
     if (!id) {
       return errorResponse(event, 'ID annuncio mancante', 400)
+    }
+
+    const owned = await getOwnedListing(id)
+    if (!owned) {
+      return errorResponse(event, 'Annuncio non trovato', 404)
     }
 
     const body = await readBody(event)
@@ -140,10 +144,7 @@ export default defineEventHandler(async (event) => {
     // Transaction: read, compare, update, log
     const listing = await prisma.$transaction(async (tx) => {
       const current = await tx.listing.findUnique({ where: { id } })
-
-      if (!current || current.userId !== userId) {
-        throw new Error('NOT_FOUND')
-      }
+      if (!current) throw new Error('NOT_FOUND')
 
       // Build update data and track changes
       const updateData: Record<string, any> = {}
