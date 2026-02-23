@@ -21,9 +21,8 @@ export default defineNuxtConfig({
         version: '1.0.0',
       },
     },
-    publicAssets: [
-      { dir: 'uploads', baseURL: '/uploads', maxAge: 60 * 60 * 24 * 7 },
-    ],
+    // Uploaded files are served dynamically via server/routes/uploads/[...path].get.ts
+    // (publicAssets only serves files present at dev-server startup, not runtime uploads)
   },
 
   runtimeConfig: {
