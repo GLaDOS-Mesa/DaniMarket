@@ -7,8 +7,8 @@ Platform for managing and publishing listings across multiple marketplaces (eBay
 - **Framework**: Nuxt 3 + TypeScript
 - **Styling**: Tailwind CSS
 - **Database**: PostgreSQL 16 (Docker) + Prisma 7
-- **Image Upload**: Local filesystem (Cloudinary planned)
-- **Deployment**: Vercel
+- **Image Upload**: Local filesystem (persistent volume on Railway)
+- **Deployment**: Railway
 
 ## Requirements
 
@@ -92,6 +92,32 @@ npm run test:run      # Run tests once
 npm run test:coverage # Run tests with coverage report
 ```
 
+## Deploy
+
+The app is deployed on **Railway** with automatic deploys on push to `main`.
+
+### Railway Services
+
+- **Web Service**: Nuxt 3 app (nixpacks builder)
+- **PostgreSQL**: Managed database (plugin)
+- **Volume**: Persistent storage for uploaded photos (`/data/uploads`)
+
+### Environment Variables (Railway)
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Provided automatically by PostgreSQL plugin |
+| `UPLOAD_DIR` | `/data/uploads` (persistent volume mount path) |
+| `NUXT_PUBLIC_APP_URL` | Public URL of the app (e.g. `https://danimarket.up.railway.app`) |
+| `NODE_ENV` | `production` |
+
+### Production Build (local)
+
+```bash
+npm run build          # Build the app
+npm run start          # Start production server
+```
+
 ## Project Structure
 
 ```
@@ -103,15 +129,19 @@ DaniMarket/
 │   ├── api/                # API endpoints (file-based routing)
 │   │   ├── health.get.ts
 │   │   └── listings/
+│   ├── middleware/
+│   │   └── uploads.ts      # Serves uploaded files at /uploads/*
 │   └── utils/              # Server utilities (auto-imported)
 │       ├── prisma.ts       # Database client
 │       ├── auth.ts         # Authentication (dev)
 │       ├── response.ts     # API response helpers
-│       └── cloudinary.ts   # Cloudinary integration
+│       └── upload.ts       # Upload paths and validation
 ├── components/             # Reusable Vue components
 ├── composables/            # Vue composables (shared logic)
 ├── layouts/                # Page layouts
 ├── pages/                  # File-based routing
 ├── types/                  # TypeScript definitions
-└── assets/css/             # Styles (Tailwind)
+├── assets/css/             # Styles (Tailwind)
+├── railway.toml            # Railway deploy configuration
+└── .dockerignore           # Docker build exclusions
 ```

@@ -1,0 +1,8 @@
+node_modules
+.nuxt
+.output
+uploads
+postgres_data
+.env
+.env.local
+.git
