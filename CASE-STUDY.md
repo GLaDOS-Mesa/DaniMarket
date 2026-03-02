@@ -328,6 +328,234 @@ fa3be31 feat(listings): add edit mode to ListingShipping component
 
 ---
 
+## Backend API (Sprint 1-5 Backend)
+
+Parallelamente al frontend, abbiamo sviluppato l'intera API REST del progetto. Il backend è stato implementato in 5 sprint incrementali, ognuno con endpoint funzionanti e testabili.
+
+### Architettura Server
+
+```
+server/
+├── api/
+│   ├── health.get.ts                    # Healthcheck
+│   └── listings/
+│       ├── index.get.ts                 # Lista annunci (filtri, paginazione)
+│       ├── index.post.ts                # Crea annuncio
+│       └── [id]/
+│           ├── index.get.ts             # Dettaglio annuncio
+│           ├── index.put.ts             # Modifica annuncio
+│           ├── index.delete.ts          # Elimina annuncio
+│           ├── photos.post.ts           # Upload foto
+│           ├── publish.post.ts          # Pubblica su tutte le piattaforme
+│           ├── draft.post.ts            # Riporta a bozza
+│           ├── sold.post.ts             # Segna come venduto
+│           ├── duplicate.post.ts        # Duplica annuncio
+│           └── platforms/
+│               ├── index.post.ts        # Aggiungi piattaforma
+│               ├── [platform].delete.ts # Rimuovi piattaforma
+│               └── [platform]/
+│                   └── publish.post.ts  # Pubblica su singola piattaforma
+├── middleware/
+│   └── uploads.ts                       # Serve file uploadati a runtime
+└── utils/
+    ├── prisma.ts                        # Database client
+    ├── auth.ts                          # Auth (dev mode)
+    ├── response.ts                      # Response helpers
+    ├── listing.ts                       # Ownership checks + Prisma includes
+    └── upload.ts                        # File upload utilities
+```
+
+### Sprint Breakdown
+
+| Sprint | Contenuto | Commit |
+|--------|-----------|--------|
+| 1 | Docker, Prisma schema, seed data | `506069d feat(backend): add Docker, Prisma schema, and seed` |
+| 2 | CRUD endpoints, OpenAPI docs, Swagger UI | `f47b677 feat(api): add CRUD endpoints, OpenAPI docs, and Swagger UI` |
+| 3 | Upload foto, delete, reorder | `ebb388f feat(api): add photo upload, delete, and reorder endpoints` |
+| 4 | Azioni listing (publish, draft, sold, duplicate) | `615948f feat(api): add listing action endpoints and ownership utility` |
+| 5 | Azioni piattaforma (add, remove, publish singola) | `94cc86c feat(api): add platform action endpoints` |
+
+### Pattern Implementati
+
+**1. Response Envelope Consistente**
+```typescript
+// Tutte le API rispondono con lo stesso formato
+{ success: true, data: T }           // successo
+{ success: false, error: string }    // errore
+```
+
+**2. Ownership Check Centralizzato**
+```typescript
+// server/utils/listing.ts
+export async function getOwnedListing(id: string) {
+  const userId = await DEV_USER_ID()
+  return prisma.listing.findFirst({
+    where: { id, userId },
+    include: { photos: true, platformPublications: true, activityLog: true },
+  })
+}
+```
+
+**3. Activity Log Automatico**
+Ogni operazione (create, update, publish, platform add/remove) genera una entry nell'activity log con action, descrizione e metadata dei campi modificati.
+
+### Metriche Backend
+
+| Metrica | Valore |
+|---------|--------|
+| Endpoint API | 14 |
+| File server | 18 |
+| Modelli Prisma | 4 (User, Listing, Photo, PlatformPublication, ActivityLog) |
+| Tempo totale | ~2 ore |
+| Commit | 5 |
+
+---
+
+## Frontend → API Connection (Sprint 8)
+
+Il passaggio critico: sostituire tutti i mock data con chiamate API reali. Questo sprint ha richiesto di attraversare l'intero stack e ha prodotto diversi bug che sono stati risolti in sessione.
+
+### Architettura 3 Layer
+
+```
+Pages (UI only)          →  handlePhotoAdd(files)
+    ↓ emit
+Composables (logic)      →  addPhotos(files) → fetchListing()
+    ↓ call
+useApi.ts ($fetch)       →  POST /api/listings/:id/photos
+```
+
+**Regola rigida**: le pagine non fanno MAI chiamate API dirette. Tutta la logica passa per i composables.
+
+### Modifiche Principali
+
+| File | Cambiamento |
+|------|-------------|
+| `types/listing.ts` | Enum UPPERCASE, nuove interfacce (Photo, ListingSummary, ListingStats) |
+| `composables/useApi.ts` | **Nuovo** — wrapper `$fetch` che unwrappa `{ success, data }` |
+| `composables/useListings.ts` | **Nuovo** — stato dashboard con filtri e refresh |
+| `composables/useListingDetail.ts` | Collegato a 10+ endpoint API (CRUD, foto, piattaforme) |
+| `composables/useListingForm.ts` | `submitAsDraft()`, `submitAndPublish()`, `loadDuplicateSource()` |
+| `composables/useListingsApi.ts` | **Eliminato** — conteneva 600+ righe di mock data |
+| 7 componenti | Adattati ai nuovi tipi (photos, platformPublications) |
+| 3 pagine | Connesse ai composables API |
+
+### Bug Risolti in Sessione
+
+Questo sprint è stato particolarmente istruttivo per il case study: il collegamento con API reali ha esposto 5 bug che non esistevano con i mock data.
+
+#### Bug 1: Pagina dettaglio vuota dopo salvataggio
+
+**Sintomo**: dopo "Salva come bozza", la pagina `/listings/[id]` si rendeva completamente bianca.
+
+**Root cause**: Prisma serializza i campi `Decimal` come stringhe JSON (`"12.58"` invece di `12.58`). Il componente `ListingBasicInfo` chiamava `listing.price?.toFixed(2)` — che crasha su una stringa.
+
+**Diagnosi**: tracciamento del flusso dati Prisma → API → `$fetch` → componente, confermato con `curl`:
+```json
+{ "price": "12.58" }  // stringa, non numero!
+```
+
+**Fix**: conversione `Number()` in tutti i composables che fetchano listing:
+```typescript
+data.price = Number(data.price)
+if (data.shippingCost != null) data.shippingCost = Number(data.shippingCost)
+```
+
+#### Bug 2: Foto corrotte (dashboard e dettaglio)
+
+**Sintomo**: le immagini non si caricavano, apparivano come icone rotte.
+
+**Root cause**: Nitro `publicAssets` serve **solo** file presenti all'avvio del dev server, non file uploadati a runtime.
+
+**Diagnosi**: i file `.jpg` esistevano su disco (14-21KB, JPEG validi), ma `curl -sI` restituiva `HTTP 404` con `Content-Type: image/gif` e header `X-Placeholder: image`.
+
+**Fix**: creato `server/middleware/uploads.ts` che intercetta `/uploads/*` e serve i file con MIME type corretto e protezione path traversal.
+
+#### Bug 3: Aggiunta foto in edit mode non visibile
+
+**Sintomo**: in modalità modifica, cliccando "Aggiungi foto" il file veniva uploadato ma la galleria non si aggiornava.
+
+**Root cause**: `addPhotos()` fa upload → re-fetch di `listing.value`, ma l'edit mode mostra `workingCopy.photos` che non veniva sincronizzato.
+
+**Fix**: aggiunta funzione `syncWorkingCopyPhotos()` che allinea sia `workingCopy` che `originalSnapshot` dopo ogni operazione foto.
+
+#### Bug 4: Salvataggio foto confuso per l'utente
+
+**Sintomo**: dopo aggiunta/rimozione foto, il bottone "Salva Modifiche" restava disabilitato, ma la foto era già salvata.
+
+**Root cause**: le operazioni foto sono immediate (server-side), non deferred come i campi di testo. Il bottone correttamente non si attiva.
+
+**Fix UX**: aggiunta toast di feedback immediato ("Foto aggiunta", "Foto rimossa", "Ordine foto aggiornato") per comunicare che il salvataggio è già avvenuto.
+
+#### Bug 5: Bottone "Aggiungi Piattaforma" non funzionante
+
+**Sintomo**: nel dettaglio, il bottone "Aggiungi Piattaforma" non faceva nulla.
+
+**Root cause**: l'handler era un placeholder `// TODO: Implement platform selection modal in future sprint`.
+
+**Fix**: implementato picker inline con piattaforme disponibili, collegato al composable `addPlatform()`.
+
+### Evoluzione: Platform Actions Complete
+
+Partendo dal Bug 5, abbiamo completato l'intero ciclo di gestione piattaforme nella UI:
+
+| Azione | UI | Backend |
+|--------|-----|---------|
+| Aggiungi | Picker inline con piattaforme disponibili | `POST /platforms` (crea o riattiva REMOVED) |
+| Rimuovi | Bottone X su hover (con icona rossa) | `DELETE /platforms/:platform` (status → REMOVED) |
+| Pubblica | Bottone "Pubblica" su hover (piattaforme DRAFT/ERROR) | `POST /platforms/:platform/publish` |
+| Ri-aggiungi | Piattaforma REMOVED riappare nel picker | `POST /platforms` (update status REMOVED → DRAFT) |
+
+**Dettaglio tecnico**: l'endpoint DELETE non cancella il record ma lo marca `REMOVED` per mantenere lo storico. L'endpoint POST gestisce la ri-aggiunta aggiornando lo status invece di creare un duplicato.
+
+### Verifica End-to-End
+
+Dopo l'implementazione, tutti i flussi sono stati verificati con `curl`:
+
+```
+✅ GET /api/listings         — 5 annunci, filtri status/search OK
+✅ GET /api/listings/:id     — Dettaglio con photos, platforms, activityLog
+✅ POST /api/listings        — Creazione DRAFT con activity log
+✅ PUT /api/listings/:id     — Modifica con tracking campi
+✅ DELETE /api/listings/:id  — Eliminazione OK
+✅ /uploads/*                — Foto servite (200, image/jpeg)
+✅ Platform lifecycle        — add → publish → remove → re-add
+✅ Frontend pages            — Tutte HTTP 200
+```
+
+### Commit History Sprint 8
+
+```
+4bfd665 refactor(types): align enums and interfaces with backend schema
+4b9692b feat(composables): add API wrapper and listings composable
+eb54d54 feat(composables): connect useListingDetail and useListingForm to API
+89b3c45 refactor(components): adapt detail components to new data model
+6b80f0e feat(ui): connect pages to API composables
+fff61a2 fix(server): serve uploaded files via middleware
+2dad1fe feat(ui): add platform add, remove, and publish actions
+```
+
+### Metriche Sprint 8
+
+| Metrica | Valore |
+|---------|--------|
+| File modificati | 18 |
+| File nuovi | 3 (useApi, useListings, uploads middleware) |
+| File eliminati | 1 (useListingsApi — 613 righe di mock data) |
+| Bug risolti in sessione | 5 |
+| Tempo totale | ~3 ore |
+| Commit | 7 |
+
+### Lezioni Apprese (API Connection)
+
+1. **Prisma Decimal ≠ JS Number**: i campi `Decimal` arrivano come stringhe JSON — serve conversione esplicita
+2. **Nitro publicAssets è statico**: per file uploadati a runtime serve un middleware custom
+3. **Working copy sync**: quando lo stato server cambia (foto, piattaforme), bisogna sincronizzare anche le copie locali in edit mode
+4. **Feedback UX per azioni immediate**: se un'operazione salva subito (foto), l'utente deve saperlo — un toast è più chiaro di un bottone "Salva" disabilitato
+5. **Mock data nascondono bug reali**: 5 bug sono emersi solo collegandosi alle API reali — i mock data avevano tipi già "puliti"
+
+---
+
 ## Riepilogo Complessivo
 
 | Fase | Tempo | Output |
@@ -336,12 +564,14 @@ fa3be31 feat(listings): add edit mode to ListingShipping component
 | Sprint 1-5 (View Mode) | ~2 ore | Pagina dettaglio completa |
 | Sprint 6 (Testing) | ~30 min | 64 test per composables core |
 | Sprint 7 (Edit Mode) | ~3 ore | Modifica inline + modal + guard + 46 nuovi test |
-| **Totale** | **~6.5 ore** | **Feature completa view + edit + 110 test** |
+| Sprint 1-5 Backend (API) | ~2 ore | 14 endpoint REST + Docker + seed |
+| Sprint 8 (Frontend → API) | ~3 ore | Connessione reale + 5 bug fix + platform actions |
+| **Totale** | **~11.5 ore** | **Full-stack app funzionante end-to-end** |
 
-**Stima sviluppo tradizionale**: 4-6 giorni developer senior
+**Stima sviluppo tradizionale**: 8-12 giorni developer senior
 
-**Fattore accelerazione**: ~6-10x
+**Fattore accelerazione**: ~7-10x
 
 ---
 
-*Documento aggiornato durante sessione di sviluppo DaniMarket - Febbraio 2026*
+*Documento aggiornato durante sessione di sviluppo DaniMarket - Marzo 2026*
