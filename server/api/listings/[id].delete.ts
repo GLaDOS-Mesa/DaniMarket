@@ -1,6 +1,5 @@
 import { rm } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join } from 'path'
 
 defineRouteMeta({
   openAPI: {
@@ -30,7 +29,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Delete photos folder from filesystem
-    const uploadDir = join(process.cwd(), 'uploads', 'listings', id)
+    const uploadDir = getUploadDir(id)
     if (existsSync(uploadDir)) {
       await rm(uploadDir, { recursive: true })
     }

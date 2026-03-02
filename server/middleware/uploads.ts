@@ -40,7 +40,8 @@ export default defineEventHandler(async (event) => {
     return 'Unsupported file type'
   }
 
-  const filePath = join(process.cwd(), 'uploads', relativePath)
+  const baseDir = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads')
+  const filePath = join(baseDir, relativePath)
 
   if (!existsSync(filePath)) {
     setResponseStatus(event, 404)

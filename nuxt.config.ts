@@ -11,6 +11,7 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    preset: 'node-server',
     experimental: {
       openAPI: true,
     },
@@ -21,8 +22,8 @@ export default defineNuxtConfig({
         version: '1.0.0',
       },
     },
-    // Uploaded files are served dynamically via server/routes/uploads/[...path].get.ts
-    // (publicAssets only serves files present at dev-server startup, not runtime uploads)
+    // Uploaded files are served dynamically via server/middleware/uploads.ts
+    // (publicAssets only serves files present at build time, not runtime uploads)
   },
 
   runtimeConfig: {

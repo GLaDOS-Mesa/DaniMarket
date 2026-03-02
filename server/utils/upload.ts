@@ -5,8 +5,12 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '5242880') // 5MB
 const MAX_FILES = parseInt(process.env.MAX_FILES_PER_LISTING || '6')
 
+export function getUploadBaseDir(): string {
+  return process.env.UPLOAD_DIR || join(process.cwd(), 'uploads')
+}
+
 export function getUploadDir(listingId: string): string {
-  return join(process.cwd(), 'uploads', 'listings', listingId)
+  return join(getUploadBaseDir(), 'listings', listingId)
 }
 
 export function generateFilename(listingId: string, originalName: string): string {
