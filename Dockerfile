@@ -6,6 +6,7 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN npm ci
 
 COPY . .
@@ -20,6 +21,7 @@ WORKDIR /app
 COPY --from=build /app/.output .output
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/prisma prisma
+COPY --from=build /app/prisma.config.ts .
 COPY --from=build /app/package.json .
 
 EXPOSE 3000
