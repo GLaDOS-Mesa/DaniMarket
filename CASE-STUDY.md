@@ -556,6 +556,98 @@ fff61a2 fix(server): serve uploaded files via middleware
 
 ---
 
+## Deploy su Railway (Sprint 9)
+
+Il deploy in produzione ha richiesto diverse iterazioni per risolvere incompatibilità tra l'ambiente locale e quello di produzione Railway.
+
+### Configurazione Infrastruttura
+
+| Componente | Tecnologia |
+|------------|------------|
+| **Builder** | Dockerfile (multi-stage, `node:22-slim`) |
+| **Database** | PostgreSQL plugin Railway |
+| **Storage foto** | Volume persistente (`/data/uploads`) |
+| **Migrazioni** | `prisma migrate deploy` al boot del container |
+| **Healthcheck** | `GET /api/health` con timeout 5 min |
+
+### Problemi Risolti in Deploy
+
+Il deploy ha prodotto una catena di problemi incrementali, ognuno risolto e pushato:
+
+| # | Problema | Root Cause | Fix |
+|---|----------|------------|-----|
+| 1 | **Node.js troppo vecchio** | Nixpacks (builder default Railway) pinna `nodejs_22` a v22.11.0, ma Prisma 7 richiede >=22.12 | Passaggio da nixpacks a **Dockerfile** custom con `node:22-slim` |
+| 2 | **prisma generate fallisce** | `npm ci` esegue `postinstall` (che include `prisma generate`) ma `prisma/schema.prisma` non è ancora copiato nel container | `COPY prisma ./prisma` **prima** di `RUN npm ci` |
+| 3 | **`prisma: not found`** | Runtime stage del Dockerfile non ha `node_modules/.bin`, quindi `npx prisma` non trova il CLI | Path diretto: `node node_modules/prisma/build/index.js migrate deploy` |
+| 4 | **`Cannot find module 'valibot'`** | Copiate solo alcune cartelle di `node_modules` (@prisma, prisma), mancavano dipendenze transitive | `COPY --from=build /app/node_modules node_modules` (copia tutto) |
+| 5 | **`datasource.url is required`** | Prisma CLI richiede URL per `migrate deploy`, ma non era configurato | Schema senza `url` (Prisma 7) + `prisma.config.ts` con `url: process.env.DATABASE_URL` |
+| 6 | **Prisma 7 rifiuta `url` nello schema** | Prisma 7 ha rimosso il supporto a `url` nel datasource block del schema | Rimosso `url` da schema, configurato in `prisma.config.ts` |
+| 7 | **502 Bad Gateway** | Dominio pubblico Railway mappato su porta 3000, ma Nuxt ascolta su 8080 | Cambiato porta nel networking Railway a 8080 |
+
+### Dockerfile Finale
+
+```dockerfile
+FROM node:22-slim AS build
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:22-slim
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /app/.output .output
+COPY --from=build /app/node_modules node_modules
+COPY --from=build /app/prisma prisma
+COPY --from=build /app/prisma.config.ts .
+COPY --from=build /app/package.json .
+ENV PORT=8080
+EXPOSE 8080
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node .output/server/index.mjs"]
+```
+
+### File di Supporto
+
+| File | Scopo |
+|------|-------|
+| `railway.toml` | Builder dockerfile, healthcheck, restart policy |
+| `.dockerignore` | Esclude node_modules, .nuxt, uploads, .env, .git |
+| `prisma.config.ts` | Datasource URL per Prisma 7 migrations |
+| `.node-version` | Creato e poi rimosso (non serviva con Dockerfile) |
+
+### Variabili d'Ambiente Railway
+
+| Variabile | Valore |
+|-----------|--------|
+| `DATABASE_URL` | Reference dal plugin PostgreSQL |
+| `UPLOAD_DIR` | `/data/uploads` |
+| `NODE_ENV` | `production` |
+| `PORT` | `8080` (set nel Dockerfile) |
+
+### Lezioni Apprese (Deploy)
+
+1. **Nixpacks ha versioni Node bloccate**: il nix package `nodejs_22` è pinnato a 22.11.0, ignorando `.node-version` e variabili d'ambiente — un Dockerfile custom è l'unica soluzione affidabile
+2. **postinstall è una trappola nel Dockerfile**: `npm ci` esegue gli script postinstall, che nel nostro caso includono `prisma generate` — tutti i file necessari devono essere presenti *prima* di `npm ci`
+3. **Prisma 7 ha rotto il deploy pattern classico**: `url` nel datasource non è più supportato, serve `prisma.config.ts` — la documentazione di deploy vecchia non funziona
+4. **Copiare solo parti di node_modules è fragile**: le dipendenze transitive (valibot, @prisma/dev) non sono ovvie — meglio copiare tutto `node_modules`
+5. **Railway porta ≠ EXPOSE**: il dominio pubblico ha una porta configurabile separatamente dall'EXPOSE del Dockerfile
+
+### Metriche Sprint 9
+
+| Metrica | Valore |
+|---------|--------|
+| File nuovi | 3 (Dockerfile, .dockerignore, prisma.config.ts) |
+| File modificati | 4 (railway.toml, package.json, nuxt.config.ts, schema.prisma) |
+| Problemi risolti | 7 |
+| Commit | 9 |
+| Tempo totale | ~2 ore |
+
+---
+
 ## Riepilogo Complessivo
 
 | Fase | Tempo | Output |
@@ -566,9 +658,10 @@ fff61a2 fix(server): serve uploaded files via middleware
 | Sprint 7 (Edit Mode) | ~3 ore | Modifica inline + modal + guard + 46 nuovi test |
 | Sprint 1-5 Backend (API) | ~2 ore | 14 endpoint REST + Docker + seed |
 | Sprint 8 (Frontend → API) | ~3 ore | Connessione reale + 5 bug fix + platform actions |
-| **Totale** | **~11.5 ore** | **Full-stack app funzionante end-to-end** |
+| Sprint 9 (Deploy Railway) | ~2 ore | App live in produzione con DB + volume |
+| **Totale** | **~13.5 ore** | **Full-stack app in produzione** |
 
-**Stima sviluppo tradizionale**: 8-12 giorni developer senior
+**Stima sviluppo tradizionale**: 10-15 giorni developer senior
 
 **Fattore accelerazione**: ~7-10x
 
