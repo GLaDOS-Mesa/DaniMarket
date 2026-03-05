@@ -24,6 +24,7 @@ COPY --from=build /app/prisma prisma
 COPY --from=build /app/prisma.config.ts .
 COPY --from=build /app/package.json .
 
-EXPOSE 3000
+ENV PORT=8080
+EXPOSE 8080
 
 CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node .output/server/index.mjs"]
