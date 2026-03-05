@@ -10,7 +10,7 @@
 
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-[rgb(255_11_11_/_31%)]">
         <div class="flex justify-between items-center h-16">
           <!-- Logo -->
           <NuxtLink to="/" class="flex items-center gap-2" aria-label="DaniMarket - Torna alla home">

@@ -19,7 +19,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="flex gap-2 mb-6 overflow-x-auto pb-2" role="group" aria-label="Filtra annunci per stato">
+    <div class="flex gap-2 mb-6 overflow-x-auto pt-[5px] pl-[5px] pb-2" role="group" aria-label="Filtra annunci per stato">
       <button
         v-for="filter in filters"
         :key="filter.value"
