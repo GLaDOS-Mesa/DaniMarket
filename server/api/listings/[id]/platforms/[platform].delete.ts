@@ -1,3 +1,6 @@
+import { DEV_USER_ID } from '~/server/utils/auth'
+import { ebayApiFetch } from '~/server/utils/ebay-api'
+
 const VALID_PLATFORMS = ['EBAY', 'VINTED', 'SUBITO', 'FACEBOOK']
 
 defineRouteMeta({
@@ -42,10 +45,28 @@ export default defineEventHandler(async (event) => {
       return errorResponse(event, 'Piattaforma non trovata', 404)
     }
 
+    // eBay: withdraw offer before local removal
+    if (platform === 'EBAY' && publication.platformOfferId) {
+      try {
+        const userId = await DEV_USER_ID()
+        await ebayApiFetch(
+          userId,
+          `/sell/inventory/v1/offer/${publication.platformOfferId}/withdraw`,
+          { method: 'POST' }
+        )
+      } catch (err: any) {
+        console.error('eBay withdraw failed:', err.message)
+        // Continue with local removal even if eBay withdraw fails
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.platformPublication.update({
         where: { id: publication.id },
-        data: { status: 'REMOVED' },
+        data: {
+          status: 'REMOVED',
+          platformOfferId: null,
+        },
       })
 
       await tx.activityLog.create({
