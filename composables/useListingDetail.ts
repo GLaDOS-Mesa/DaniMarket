@@ -459,6 +459,18 @@ export const useListingDetail = () => {
     }
   }
 
+  async function syncPlatform(platform: string) {
+    if (!listing.value) return
+    try {
+      await post(`/api/listings/${listing.value.id}/platforms/${platform}/sync`)
+      await fetchListing(listing.value.id)
+      toast.success('Sincronizzazione completata')
+    } catch (e: any) {
+      const message = e?.data?.error || e?.message || 'Errore nella sincronizzazione'
+      toast.error(message)
+    }
+  }
+
   // ========== PHOTO ACTIONS ==========
 
   // Sync working copy photos with the latest listing data after server-side photo changes
@@ -552,6 +564,7 @@ export const useListingDetail = () => {
     addPlatform,
     publishPlatform,
     removePlatform,
+    syncPlatform,
 
     // Photo actions
     addPhotos,

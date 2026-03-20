@@ -161,6 +161,7 @@
               @add-platform="handleAddPlatform"
               @remove-platform="handleRemovePlatform"
               @publish-platform="handlePublishPlatform"
+              @sync-platform="handleSyncPlatform"
             />
 
             <!-- Stats Card -->
@@ -234,6 +235,7 @@ const {
   addPlatform,
   removePlatform,
   publishPlatform,
+  syncPlatform,
 
   // Photo actions
   addPhotos,
@@ -338,6 +340,10 @@ const handleRemovePlatform = (platform: string) => {
 
 const handlePublishPlatform = (platform: string) => {
   publishPlatform(platform)
+}
+
+const handleSyncPlatform = (platform: string) => {
+  syncPlatform(platform)
 }
 
 const handlePublish = () => publishListing()

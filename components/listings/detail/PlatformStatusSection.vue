@@ -34,6 +34,27 @@
           >
             {{ publicationStatusLabels[pub.status] }}
           </span>
+          <!-- eBay listing link -->
+          <a
+            v-if="pub.status === PlatformPublicationStatus.PUBLISHED && pub.platformListingUrl"
+            :href="pub.platformListingUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="px-2.5 py-1 text-xs font-medium text-primary-600 hover:text-primary-800 underline focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded"
+            :aria-label="`Vedi annuncio su ${platformLabels[pub.platform]}`"
+          >
+            Vedi su {{ platformLabels[pub.platform] }}
+          </a>
+          <!-- Sync retry button (shown when published with error) -->
+          <button
+            v-if="pub.status === PlatformPublicationStatus.PUBLISHED && pub.lastError && pub.platform === Platform.EBAY"
+            type="button"
+            class="px-2.5 py-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+            :aria-label="`Ritenta sincronizzazione su ${platformLabels[pub.platform]}`"
+            @click="emit('syncPlatform', pub.platform)"
+          >
+            Ritenta sync
+          </button>
           <!-- Publish button (shown for DRAFT and ERROR) -->
           <button
             v-if="pub.status === PlatformPublicationStatus.DRAFT || pub.status === PlatformPublicationStatus.ERROR"
@@ -44,8 +65,19 @@
           >
             Pubblica
           </button>
+          <!-- Republish button (shown for REMOVED) -->
+          <button
+            v-if="pub.status === PlatformPublicationStatus.REMOVED"
+            type="button"
+            class="px-2.5 py-1 text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            :aria-label="`Ripubblica su ${platformLabels[pub.platform]}`"
+            @click="emit('publishPlatform', pub.platform)"
+          >
+            Ripubblica
+          </button>
           <!-- Remove button -->
           <button
+            v-if="pub.status !== PlatformPublicationStatus.REMOVED"
             type="button"
             class="w-6 h-6 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             :aria-label="`Rimuovi ${platformLabels[pub.platform]}`"
@@ -67,6 +99,14 @@
             </svg>
           </button>
         </div>
+        <!-- Sync error message -->
+        <p
+          v-if="pub.lastError"
+          class="mt-1 ml-11 text-xs text-red-600"
+          role="status"
+        >
+          {{ pub.lastError }}
+        </p>
       </li>
     </ul>
 
@@ -193,6 +233,7 @@ const emit = defineEmits<{
   (e: 'addPlatform', platform: Platform): void
   (e: 'removePlatform', platform: Platform): void
   (e: 'publishPlatform', platform: Platform): void
+  (e: 'syncPlatform', platform: Platform): void
 }>()
 
 const showPicker = ref(false)
