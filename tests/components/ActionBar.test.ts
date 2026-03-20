@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ActionBar from '~/components/listings/detail/ActionBar.vue'
 import { ListingStatus } from '~/types/listing'

@@ -1,5 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-
 // --- Mock Nuxt/Nitro auto-imports BEFORE route handler modules are loaded ---
 const mocks = vi.hoisted(() => {
   const getRouterParam = vi.fn()

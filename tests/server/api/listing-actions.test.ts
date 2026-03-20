@@ -1,4 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // --- Mock Nuxt/Nitro auto-imports BEFORE route handler modules are loaded ---
 // vi.hoisted moves this block before any import statements

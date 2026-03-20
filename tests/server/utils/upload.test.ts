@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest'
 import { getUploadDir, generateFilename, validateFile, MAX_FILES, ALLOWED_TYPES, MAX_FILE_SIZE } from '~/server/utils/upload'
 
 describe('upload utility', () => {

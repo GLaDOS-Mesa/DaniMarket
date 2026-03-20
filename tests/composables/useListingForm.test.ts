@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach } from 'vitest'
 import { useListingForm } from '~/composables/useListingForm'
 import { ListingCategory, ListingCondition, ListingColor, PackageSize, Platform, type ListingPhoto } from '~/types/listing'
 
@@ -363,8 +362,11 @@ describe('useListingForm', () => {
       shippingCost: 5,
       platforms: [Platform.VINTED, Platform.EBAY],
       status: 'ACTIVE',
-      publications: [],
-      activityLog: [{ id: '1', action: 'created', description: 'Created', timestamp: new Date() }],
+      platformPublications: [
+        { id: 'pub-1', platform: Platform.VINTED, status: 'DRAFT' },
+        { id: 'pub-2', platform: Platform.EBAY, status: 'DRAFT' },
+      ],
+      activityLog: [{ id: '1', action: 'created', description: 'Created', createdAt: new Date() }],
       stats: { totalViews: 100, favorites: 10, messages: 5, daysOnline: 30 },
       createdAt: new Date(),
       updatedAt: new Date(),

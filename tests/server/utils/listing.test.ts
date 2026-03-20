@@ -1,5 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-
 // Mock Nuxt auto-imports (prisma, DEV_USER_ID) as globals
 const mockFindUnique = vi.fn()
 const mockDEV_USER_ID = vi.fn()

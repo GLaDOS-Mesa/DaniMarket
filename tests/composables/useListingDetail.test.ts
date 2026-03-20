@@ -1,4 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+// Mock auto-imported composables (Nuxt auto-imports as globals)
+;(globalThis as any).useToast = () => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+})
+
+;(globalThis as any).useApi = () => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  del: vi.fn(),
+  uploadPhotos: vi.fn(),
+})
+
 import { useListingDetail } from '~/composables/useListingDetail'
 import {
   ListingCategory,
