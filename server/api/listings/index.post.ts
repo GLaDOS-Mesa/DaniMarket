@@ -23,7 +23,7 @@ defineRouteMeta({
         'application/json': {
           schema: {
             type: 'object',
-            required: ['title', 'description', 'price', 'category', 'condition', 'city', 'province'],
+            required: ['title', 'description', 'price', 'category', 'condition', 'city', 'province', 'phone'],
             properties: {
               title: { type: 'string' },
               description: { type: 'string' },
@@ -32,6 +32,7 @@ defineRouteMeta({
               condition: { type: 'string', enum: ['NEW_WITH_TAGS', 'NEW_WITHOUT_TAGS', 'LIKE_NEW', 'GOOD', 'FAIR', 'DAMAGED'] },
               city: { type: 'string' },
               province: { type: 'string' },
+              phone: { type: 'string' },
               brand: { type: 'string' },
               size: { type: 'string' },
               colors: { type: 'array', items: { type: 'string' } },
@@ -50,6 +51,7 @@ defineRouteMeta({
             condition: 'GOOD',
             city: 'Bologna',
             province: 'BO',
+            phone: '3331234567',
             platforms: ['EBAY'],
           },
         },
@@ -78,6 +80,8 @@ export default defineEventHandler(async (event) => {
 
     if (!body.description?.trim()) {
       errors.push('La descrizione è obbligatoria')
+    } else if (body.description.trim().length < 15) {
+      errors.push('La descrizione deve contenere almeno 15 caratteri')
     } else if (body.description.length > 2000) {
       errors.push('La descrizione non può superare 2000 caratteri')
     }
@@ -100,6 +104,10 @@ export default defineEventHandler(async (event) => {
 
     if (!body.province?.trim() || body.province.trim().length !== 2) {
       errors.push('La provincia è obbligatoria (sigla 2 lettere)')
+    }
+
+    if (!body.phone?.trim()) {
+      errors.push('Il numero di telefono è obbligatorio')
     }
 
     if (errors.length > 0) {
@@ -131,6 +139,7 @@ export default defineEventHandler(async (event) => {
           condition: body.condition,
           city: body.city.trim(),
           province: body.province.trim().toUpperCase(),
+          phone: body.phone.trim(),
           brand: body.brand?.trim() || null,
           size: body.size?.trim() || null,
           colors: body.colors ?? [],

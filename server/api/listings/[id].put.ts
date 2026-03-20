@@ -26,6 +26,7 @@ const FIELD_LABELS: Record<string, string> = {
   material: 'materiale',
   city: 'comune',
   province: 'provincia',
+  phone: 'numero di telefono',
   shippingAvailable: 'spedizione disponibile',
   packageSize: 'dimensione pacco',
   shippingCost: 'costo spedizione',
@@ -63,6 +64,7 @@ defineRouteMeta({
               condition: { type: 'string' },
               city: { type: 'string' },
               province: { type: 'string' },
+              phone: { type: 'string' },
               brand: { type: 'string' },
               size: { type: 'string' },
               colors: { type: 'array', items: { type: 'string' } },
@@ -135,6 +137,10 @@ export default defineEventHandler(async (event) => {
 
     if (body.province !== undefined && (!body.province?.trim() || body.province.trim().length !== 2)) {
       return errorResponse(event, 'La provincia deve essere una sigla di 2 lettere', 400)
+    }
+
+    if (body.phone !== undefined && !body.phone?.trim()) {
+      return errorResponse(event, 'Il numero di telefono non può essere vuoto', 400)
     }
 
     if (body.packageSize !== undefined && body.packageSize !== null && !VALID_PACKAGE_SIZES.includes(body.packageSize)) {

@@ -65,6 +65,7 @@ const createInitialFormData = (): ListingFormData => ({
   // Step 4 — Shipping
   city: '',
   province: '',
+  phone: '',
   shippingAvailable: true,
   packageSize: null,
   shippingCost: null,
@@ -104,6 +105,8 @@ const validateStep2 = (): StepValidation => {
 
   if (!formData.value.description.trim()) {
     errors.description = 'La descrizione è obbligatoria'
+  } else if (formData.value.description.trim().length < 15) {
+    errors.description = 'La descrizione deve contenere almeno 15 caratteri'
   }
 
   if (formData.value.price === null || formData.value.price <= 0) {
@@ -147,6 +150,10 @@ const validateStep4 = (): StepValidation => {
 
   if (!formData.value.province.trim()) {
     errors.province = 'La provincia è obbligatoria'
+  }
+
+  if (!formData.value.phone.trim()) {
+    errors.phone = 'Il numero di telefono è obbligatorio'
   }
 
   if (formData.value.shippingAvailable && !formData.value.packageSize) {
@@ -213,6 +220,7 @@ function buildPayload() {
     material: formData.value.material || undefined,
     city: formData.value.city,
     province: formData.value.province,
+    phone: formData.value.phone,
     shippingAvailable: formData.value.shippingAvailable,
     packageSize: formData.value.packageSize,
     shippingCost: formData.value.shippingCost,
@@ -385,6 +393,7 @@ export const useListingForm = (): UseListingFormReturn => {
       material: listing.material || '',
       city: listing.city,
       province: listing.province,
+      phone: listing.phone,
       shippingAvailable: listing.shippingAvailable,
       packageSize: listing.packageSize,
       shippingCost: listing.shippingCost,

@@ -123,15 +123,17 @@
             <ListingsDetailListingShipping
               :city="listing.city"
               :province="listing.province"
+              :phone="listing.phone"
               :shipping-available="listing.shippingAvailable"
               :shipping-cost="listing.shippingCost"
               :package-size="listing.packageSize"
               :is-edit-mode="isEditMode"
-              :working-city="workingCopy?.city"
-              :working-province="workingCopy?.province"
-              :working-shipping-available="workingCopy?.shippingAvailable"
-              :working-shipping-cost="workingCopy?.shippingCost"
-              :working-package-size="workingCopy?.packageSize"
+              :edit-city="workingCopy?.city"
+              :edit-province="workingCopy?.province"
+              :edit-phone="workingCopy?.phone"
+              :edit-shipping-available="workingCopy?.shippingAvailable"
+              :edit-shipping-cost="workingCopy?.shippingCost"
+              :edit-package-size="workingCopy?.packageSize"
               :modified-fields="modifiedFields"
               :errors="validationErrors"
               @update="handleFieldUpdate"
@@ -143,14 +145,12 @@
             <!-- Action Bar -->
             <ListingsDetailActionBar
               :status="listing.status"
-              :is-publishing="isPublishing"
               :is-edit-mode="isEditMode"
               :has-changes="hasChanges"
               :is-valid="isValid"
               @edit="handleEdit"
               @save="handleSave"
               @cancel="handleCancel"
-              @publish="handlePublish"
               @duplicate="handleDuplicate"
               @delete="showDeleteModal = true"
             />
@@ -158,6 +158,8 @@
             <!-- Platforms Card -->
             <ListingsDetailPlatformStatusSection
               :publications="listing.platformPublications"
+              :extension-installed="isExtensionInstalled"
+              :extension-platforms="supportedPlatforms"
               @add-platform="handleAddPlatform"
               @remove-platform="handleRemovePlatform"
               @publish-platform="handlePublishPlatform"
@@ -198,7 +200,7 @@
 
 <script setup lang="ts">
 import type { Listing } from '~/types/listing'
-import { PlatformPublicationStatus, platformLabels } from '~/types/listing'
+import { Platform, PlatformPublicationStatus, platformLabels } from '~/types/listing'
 
 const route = useRoute()
 
@@ -234,12 +236,15 @@ const {
   addPlatform,
   removePlatform,
   publishPlatform,
+  publishToExtension,
 
   // Photo actions
   addPhotos,
   removePhoto,
   reorderPhotos,
 } = useListingDetail()
+
+const { isInstalled: isExtensionInstalled, supportedPlatforms } = useExtensionStatus()
 
 // UI state (modals, navigation)
 const showDeleteModal = ref(false)
@@ -336,8 +341,22 @@ const handleRemovePlatform = (platform: string) => {
   removePlatform(platform)
 }
 
+// Platforms that require the browser extension
+const EXTENSION_ONLY_PLATFORMS = new Set([Platform.SUBITO, Platform.VINTED])
+
 const handlePublishPlatform = (platform: string) => {
-  publishPlatform(platform)
+  const platformEnum = platform as Platform
+
+  if (EXTENSION_ONLY_PLATFORMS.has(platformEnum)) {
+    if (!isExtensionInstalled.value) {
+      const toast = useToast()
+      toast.error('Installa l\'estensione DaniMarket Assistant per pubblicare su questa piattaforma')
+      return
+    }
+    publishToExtension(platformEnum)
+  } else {
+    publishPlatform(platform)
+  }
 }
 
 const handlePublish = () => publishListing()

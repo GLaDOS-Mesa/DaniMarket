@@ -102,37 +102,6 @@
         Modifica
       </button>
 
-      <!-- Publish button (only for drafts) -->
-      <button
-        v-if="status === ListingStatus.DRAFT"
-        type="button"
-        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
-        :disabled="isPublishing"
-        @click="$emit('publish')"
-      >
-        <svg
-          v-if="!isPublishing"
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-          />
-        </svg>
-        <span
-          v-else
-          class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"
-          aria-hidden="true"
-        />
-        {{ isPublishing ? 'Pubblicazione...' : 'Pubblica' }}
-      </button>
-
       <!-- Secondary actions -->
       <div class="flex gap-2">
         <!-- Duplicate -->
@@ -190,7 +159,6 @@ import { ListingStatus } from '~/types/listing'
 
 const props = defineProps<{
   status: ListingStatus
-  isPublishing?: boolean
   isEditMode?: boolean
   hasChanges?: boolean
   isValid?: boolean
@@ -200,7 +168,6 @@ defineEmits<{
   (e: 'edit'): void
   (e: 'save'): void
   (e: 'cancel'): void
-  (e: 'publish'): void
   (e: 'duplicate'): void
   (e: 'delete'): void
 }>()

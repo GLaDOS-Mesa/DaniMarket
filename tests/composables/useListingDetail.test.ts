@@ -29,6 +29,7 @@ describe('useListingDetail', () => {
     material: 'Cotton',
     city: 'Roma',
     province: 'RM',
+    phone: '3331234567',
     shippingAvailable: true,
     packageSize: PackageSize.MEDIUM,
     shippingCost: 5,

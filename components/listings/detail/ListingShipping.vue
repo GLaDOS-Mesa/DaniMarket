@@ -123,7 +123,7 @@
           </label>
           <input
             id="edit-province"
-            :value="workingProvince"
+            :value="editProvince"
             type="text"
             readonly
             class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-700 transition-all duration-200"
@@ -134,6 +134,51 @@
             Si compila selezionando il comune
           </p>
         </div>
+      </div>
+
+      <!-- Phone number -->
+      <div>
+        <label
+          for="edit-phone"
+          class="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Numero di telefono <span class="text-red-500">*</span>
+        </label>
+        <div class="relative">
+          <span
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium"
+            aria-hidden="true"
+          >
+            +39
+          </span>
+          <input
+            id="edit-phone"
+            :value="editPhone"
+            type="tel"
+            class="w-full pl-12 pr-3 py-2 border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            :class="errors?.phone ? 'border-red-500 ring-1 ring-red-500' : isFieldModified('phone') ? 'ring-2 ring-amber-300 border-amber-400' : 'border-gray-300'"
+            placeholder="333 1234567"
+            :aria-invalid="!!errors?.phone"
+            :aria-describedby="errors?.phone ? 'phone-error' : 'phone-hint'"
+            aria-required="true"
+            @input="$emit('update', 'phone', ($event.target as HTMLInputElement).value)"
+          >
+        </div>
+        <p
+          v-if="errors?.phone"
+          id="phone-error"
+          class="mt-1 text-sm text-red-600"
+          role="alert"
+        >
+          {{ errors.phone }}
+        </p>
+        <p
+          v-else
+          id="phone-hint"
+          class="mt-1 text-sm text-gray-500"
+        >
+          Necessario per le piattaforme di vendita
+        </p>
       </div>
 
       <!-- Shipping toggle -->
@@ -148,16 +193,16 @@
         <button
           type="button"
           role="switch"
-          :aria-checked="workingShippingAvailable"
+          :aria-checked="editShippingAvailable"
           class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-          :class="workingShippingAvailable ? 'bg-primary-600' : 'bg-gray-200'"
+          :class="editShippingAvailable ? 'bg-primary-600' : 'bg-gray-200'"
           @click="toggleShipping"
         >
           <span class="sr-only">Abilita spedizione</span>
           <span
             aria-hidden="true"
             class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform"
-            :class="workingShippingAvailable ? 'translate-x-5' : 'translate-x-0'"
+            :class="editShippingAvailable ? 'translate-x-5' : 'translate-x-0'"
           />
         </button>
       </div>
@@ -165,7 +210,7 @@
       <!-- Shipping options (shown when shipping is enabled) -->
       <Transition name="slide-fade">
         <div
-          v-if="workingShippingAvailable"
+          v-if="editShippingAvailable"
           class="space-y-6 pl-4 border-l-2 border-primary-200"
         >
           <!-- Package size -->
@@ -186,7 +231,7 @@
                 <input
                   type="radio"
                   :value="key"
-                  :checked="workingPackageSize === key"
+                  :checked="editPackageSize === key"
                   class="sr-only"
                   :aria-describedby="`package-${key}-desc`"
                   @change="$emit('update', 'packageSize', key)"
@@ -194,20 +239,20 @@
                 <div class="flex-1">
                   <span
                     class="block font-medium"
-                    :class="workingPackageSize === key ? 'text-primary-700' : 'text-gray-900'"
+                    :class="editPackageSize === key ? 'text-primary-700' : 'text-gray-900'"
                   >
                     {{ getPackageSizeName(key as PackageSize) }}
                   </span>
                   <span
                     :id="`package-${key}-desc`"
                     class="block text-sm"
-                    :class="workingPackageSize === key ? 'text-primary-600' : 'text-gray-500'"
+                    :class="editPackageSize === key ? 'text-primary-600' : 'text-gray-500'"
                   >
                     {{ getPackageSizeWeight(key as PackageSize) }}
                   </span>
                 </div>
                 <span
-                  v-if="workingPackageSize === key"
+                  v-if="editPackageSize === key"
                   class="ml-2 text-primary-600"
                   aria-hidden="true"
                 >
@@ -252,7 +297,7 @@
               </span>
               <input
                 id="edit-shippingCost"
-                :value="workingShippingCost"
+                :value="editShippingCost"
                 type="number"
                 min="0"
                 step="0.01"
@@ -300,6 +345,28 @@
         <div>
           <dt class="text-sm text-gray-500">Località</dt>
           <dd class="text-gray-900 font-medium">{{ city }}, {{ province }}</dd>
+        </div>
+      </div>
+
+      <!-- Phone -->
+      <div class="flex items-start gap-3">
+        <svg
+          class="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+          />
+        </svg>
+        <div>
+          <dt class="text-sm text-gray-500">Telefono</dt>
+          <dd class="text-gray-900 font-medium">{{ phone }}</dd>
         </div>
       </div>
 
@@ -383,16 +450,18 @@ import { useItalianCities } from '~/composables/useItalianCities'
 const props = defineProps<{
   city: string
   province: string
+  phone: string
   shippingAvailable: boolean
   shippingCost: number | null
   packageSize: PackageSize | null
   // Edit mode props
   isEditMode?: boolean
-  workingCity?: string
-  workingProvince?: string
-  workingShippingAvailable?: boolean
-  workingShippingCost?: number | null
-  workingPackageSize?: PackageSize | null
+  editCity?: string
+  editProvince?: string
+  editPhone?: string
+  editShippingAvailable?: boolean
+  editShippingCost?: number | null
+  editPackageSize?: PackageSize | null
   modifiedFields?: Set<string>
   errors?: Record<string, string>
 }>()
@@ -403,15 +472,15 @@ const emit = defineEmits<{
 
 // City autocomplete
 const { searchCities, isLoading: isLoadingCities } = useItalianCities()
-const cityQuery = ref(props.workingCity || props.city)
+const cityQuery = ref(props.editCity || props.city)
 const allCities = ref<ItalianCity[]>([])
 const citySuggestions = ref<ItalianCity[]>([])
 const showSuggestions = ref(false)
 const highlightedIndex = ref(-1)
 const hasLoadedCities = ref(false)
 
-// Watch for workingCity changes (when entering edit mode)
-watch(() => props.workingCity, (newValue) => {
+// Watch for editCity changes (when entering edit mode)
+watch(() => props.editCity, (newValue) => {
   if (newValue !== undefined && newValue !== cityQuery.value) {
     cityQuery.value = newValue
   }
@@ -436,7 +505,7 @@ watch(cityQuery, async (newQuery) => {
   highlightedIndex.value = -1
 
   // If user types something different, clear the selection
-  if (props.workingCity && newQuery !== props.workingCity) {
+  if (props.editCity && newQuery !== props.editCity) {
     emit('update', 'city', newQuery)
     emit('update', 'province', '')
   }
@@ -505,7 +574,7 @@ const closeSuggestions = () => {
 }
 
 const toggleShipping = () => {
-  const newValue = !props.workingShippingAvailable
+  const newValue = !props.editShippingAvailable
   emit('update', 'shippingAvailable', newValue)
   // Clear shipping-related fields if disabling
   if (!newValue) {
@@ -530,7 +599,7 @@ const getCityFieldClasses = (): string => {
 }
 
 const getPackageSizeClasses = (size: PackageSize): string => {
-  const isSelected = props.workingPackageSize === size
+  const isSelected = props.editPackageSize === size
   const isModified = isFieldModified('packageSize')
 
   if (isSelected && isModified) {

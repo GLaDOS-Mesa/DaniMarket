@@ -39,11 +39,21 @@
             v-if="pub.status === PlatformPublicationStatus.DRAFT || pub.status === PlatformPublicationStatus.ERROR"
             type="button"
             class="px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            :aria-label="`Pubblica su ${platformLabels[pub.platform]}`"
+            :aria-label="`Pubblica su ${platformLabels[pub.platform]}${isExtensionPlatform(pub.platform) ? ' tramite estensione' : ''}`"
+            :disabled="isExtensionPlatform(pub.platform) && !props.extensionInstalled"
+            :title="isExtensionPlatform(pub.platform) && !props.extensionInstalled ? 'Installa l\'estensione DaniMarket Assistant per pubblicare' : undefined"
             @click="emit('publishPlatform', pub.platform)"
           >
-            Pubblica
+            {{ isExtensionPlatform(pub.platform) ? 'Pubblica via estensione' : 'Pubblica' }}
           </button>
+          <!-- Extension not installed warning -->
+          <span
+            v-if="isExtensionPlatform(pub.platform) && !props.extensionInstalled && (pub.status === PlatformPublicationStatus.DRAFT || pub.status === PlatformPublicationStatus.ERROR)"
+            class="text-xs text-amber-600"
+            role="alert"
+          >
+            Estensione non trovata
+          </span>
           <!-- Remove button -->
           <button
             type="button"
@@ -179,6 +189,7 @@ import {
   publicationStatusLabels,
   platformLabels,
 } from '~/types/listing'
+
 import type { PlatformPublication } from '~/types/listing'
 
 // PlatformLogo type mappings
@@ -187,6 +198,8 @@ type LogoStatus = 'PENDING' | 'PUBLISHED' | 'ERROR' | 'REMOVED'
 
 const props = defineProps<{
   publications: PlatformPublication[]
+  extensionInstalled?: boolean
+  extensionPlatforms?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -211,6 +224,13 @@ const availablePlatforms = computed(() => {
 const handleSelectPlatform = (platform: Platform) => {
   emit('addPlatform', platform)
   showPicker.value = false
+}
+
+// Platforms that require the browser extension to publish
+const EXTENSION_PLATFORMS = new Set([Platform.SUBITO, Platform.VINTED])
+
+const isExtensionPlatform = (platform: Platform): boolean => {
+  return EXTENSION_PLATFORMS.has(platform)
 }
 
 const mapPlatformToLogo = (platform: Platform): LogoPlatform => {

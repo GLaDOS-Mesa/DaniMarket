@@ -5,8 +5,13 @@ import {
   type ListingCondition,
   type ListingColor,
   type PackageSize,
+  type ExtensionPublishPayload,
   ListingCategory as LC,
+  Platform,
   categoriesRequiringSize,
+  categoryMapping,
+  conditionMapping,
+  colorMapping,
 } from '~/types/listing'
 
 // ========== TYPES ==========
@@ -25,6 +30,7 @@ export interface EditableListingData {
   material: string | null
   city: string
   province: string
+  phone: string
   shippingAvailable: boolean
   packageSize: PackageSize | null
   shippingCost: number | null
@@ -45,6 +51,7 @@ const fieldLabels: Record<string, string> = {
   material: 'Materiale',
   city: 'Comune',
   province: 'Provincia',
+  phone: 'Numero di telefono',
   shippingAvailable: 'Spedizione disponibile',
   packageSize: 'Dimensione pacco',
   shippingCost: 'Costo spedizione',
@@ -65,6 +72,7 @@ const editableFields: (keyof Listing)[] = [
   'material',
   'city',
   'province',
+  'phone',
   'shippingAvailable',
   'packageSize',
   'shippingCost',
@@ -202,6 +210,8 @@ export const useListingDetail = () => {
     // Description validation
     if (!data.description?.trim()) {
       errors.description = 'La descrizione è obbligatoria'
+    } else if (data.description.trim().length < 15) {
+      errors.description = 'La descrizione deve contenere almeno 15 caratteri'
     }
 
     // Price validation
@@ -241,6 +251,11 @@ export const useListingDetail = () => {
     // Province validation
     if (!data.province?.trim()) {
       errors.province = 'La provincia è obbligatoria'
+    }
+
+    // Phone validation
+    if (!data.phone?.trim()) {
+      errors.phone = 'Il numero di telefono è obbligatorio'
     }
 
     // Package size validation (required if shipping is available)
@@ -459,6 +474,46 @@ export const useListingDetail = () => {
     }
   }
 
+  // ========== EXTENSION PUBLISH ==========
+
+  function buildExtensionPayload(platform: Platform): ExtensionPublishPayload | null {
+    if (!listing.value) return null
+    const l = listing.value
+
+    return {
+      listingId: l.id,
+      platform,
+      title: l.title,
+      description: l.description,
+      price: l.price,
+      category: categoryMapping[l.category]?.[platform] || l.category,
+      internalCategory: l.category,
+      condition: conditionMapping[l.condition]?.[platform] || l.condition,
+      city: l.city,
+      province: l.province,
+      phone: l.phone,
+      photos: l.photos.map(p => p.url),
+      brand: l.brand || undefined,
+      size: l.size || undefined,
+      colors: l.colors?.length
+        ? l.colors.map(c => colorMapping[c]?.[platform] || c)
+        : undefined,
+      material: l.material || undefined,
+      shippingAvailable: l.shippingAvailable,
+      shippingCost: l.shippingCost ?? undefined,
+    }
+  }
+
+  function publishToExtension(platform: Platform): boolean {
+    const payload = buildExtensionPayload(platform)
+    if (!payload) return false
+
+    window.dispatchEvent(new CustomEvent('danimarket:publish', {
+      detail: payload,
+    }))
+    return true
+  }
+
   // ========== PHOTO ACTIONS ==========
 
   // Sync working copy photos with the latest listing data after server-side photo changes
@@ -552,6 +607,7 @@ export const useListingDetail = () => {
     addPlatform,
     publishPlatform,
     removePlatform,
+    publishToExtension,
 
     // Photo actions
     addPhotos,

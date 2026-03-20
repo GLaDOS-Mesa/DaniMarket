@@ -100,9 +100,10 @@ model Listing {
   colors   String[]
   material String?
 
-  // Location
+  // Location & Contact
   city     String
   province String @db.VarChar(2)
+  phone    String
 
   // Shipping
   shippingAvailable Boolean     @default(true) @map("shipping_available")

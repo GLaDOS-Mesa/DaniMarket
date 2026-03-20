@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
           material: source.material,
           city: source.city,
           province: source.province,
+          phone: source.phone,
           shippingAvailable: source.shippingAvailable,
           packageSize: source.packageSize,
           shippingCost: source.shippingCost,

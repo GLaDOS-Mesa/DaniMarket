@@ -100,6 +100,39 @@
         </div>
       </div>
 
+      <!-- Phone number -->
+      <div>
+        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
+          Numero di telefono <span class="text-red-500" aria-hidden="true">*</span>
+        </label>
+        <div class="relative">
+          <span
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium"
+            aria-hidden="true"
+          >
+            +39
+          </span>
+          <input
+            id="phone"
+            v-model="formData.phone"
+            type="tel"
+            class="w-full pl-14 pr-4 py-2.5 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            :class="errors.phone ? 'border-red-300 bg-red-50' : 'border-gray-300'"
+            placeholder="333 1234567"
+            :aria-invalid="!!errors.phone"
+            :aria-describedby="errors.phone ? 'phone-error' : 'phone-hint'"
+            aria-required="true"
+            @blur="touchedFields.add('phone')"
+          />
+        </div>
+        <p v-if="errors.phone" id="phone-error" class="mt-1 text-sm text-red-600" role="alert">
+          {{ errors.phone }}
+        </p>
+        <p v-else id="phone-hint" class="mt-1 text-sm text-gray-500">
+          Necessario per le piattaforme di vendita
+        </p>
+      </div>
+
       <!-- Shipping toggle -->
       <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
         <div>

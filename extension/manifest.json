@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "DaniMarket Assistant",
+  "description": "Pubblica i tuoi annunci DaniMarket sulle piattaforme esterne con un click",
+  "version": "1.0.0",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://www.subito.it/*",
+    "https://inserimento.subito.it/*",
+    "https://areariservata.subito.it/*",
+    "https://www.vinted.it/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3000/*"],
+      "js": ["content-scripts/danimarket.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.subito.it/*", "https://inserimento.subito.it/*", "https://areariservata.subito.it/*"],
+      "js": ["content-scripts/subito.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png"
+    }
+  }
+}

@@ -73,6 +73,7 @@ export interface ListingFormData {
   // Step 4 — Spedizione
   city: string
   province: string
+  phone: string
   shippingAvailable: boolean
   packageSize: PackageSize | null
   shippingCost: number | null
@@ -100,37 +101,37 @@ export const conditionMapping: Record<ListingCondition, Record<Platform, string>
   [ListingCondition.NEW_WITH_TAGS]: {
     [Platform.EBAY]: 'New',
     [Platform.VINTED]: 'Nuovo con cartellino',
-    [Platform.SUBITO]: 'Nuovo',
+    [Platform.SUBITO]: 'Nuovo - mai usato in confezione originale',
     [Platform.FACEBOOK]: 'New',
   },
   [ListingCondition.NEW_WITHOUT_TAGS]: {
     [Platform.EBAY]: 'New (other)',
     [Platform.VINTED]: 'Nuovo senza cartellino',
-    [Platform.SUBITO]: 'Nuovo',
+    [Platform.SUBITO]: 'Nuovo - mai usato in confezione originale',
     [Platform.FACEBOOK]: 'New',
   },
   [ListingCondition.LIKE_NEW]: {
     [Platform.EBAY]: 'Used – Like New',
     [Platform.VINTED]: 'Ottime condizioni',
-    [Platform.SUBITO]: 'Come nuovo',
+    [Platform.SUBITO]: 'Come nuovo - perfetto o ricondizionato',
     [Platform.FACEBOOK]: 'Used – Like New',
   },
   [ListingCondition.GOOD]: {
     [Platform.EBAY]: 'Used – Good',
     [Platform.VINTED]: 'Buone condizioni',
-    [Platform.SUBITO]: 'Buono',
+    [Platform.SUBITO]: 'Ottimo - poco usato e ben conservato',
     [Platform.FACEBOOK]: 'Used – Good',
   },
   [ListingCondition.FAIR]: {
     [Platform.EBAY]: 'Used – Acceptable',
     [Platform.VINTED]: 'Discrete condizioni',
-    [Platform.SUBITO]: 'Ottimo',
+    [Platform.SUBITO]: 'Buono - usato ma ben conservato',
     [Platform.FACEBOOK]: 'Used – Fair',
   },
   [ListingCondition.DAMAGED]: {
     [Platform.EBAY]: 'For parts or not working',
     [Platform.VINTED]: 'Discrete condizioni',
-    [Platform.SUBITO]: 'Danneggiato',
+    [Platform.SUBITO]: 'Danneggiato - usato con parti guaste',
     [Platform.FACEBOOK]: 'Used – Fair',
   },
 }
@@ -431,6 +432,29 @@ export enum ActivityAction {
   PLATFORM_REMOVED = 'PLATFORM_REMOVED',
 }
 
+// ========== EXTENSION PUBLISH PAYLOAD ==========
+
+export interface ExtensionPublishPayload {
+  listingId: string
+  platform: Platform
+  title: string
+  description: string
+  price: number
+  category: string
+  internalCategory: ListingCategory
+  condition: string
+  city: string
+  province: string
+  phone: string
+  photos: string[]
+  brand?: string
+  size?: string
+  colors?: string[]
+  material?: string
+  shippingAvailable: boolean
+  shippingCost?: number
+}
+
 // ========== LISTING DETAIL INTERFACES ==========
 
 export interface PlatformPublication {
@@ -482,6 +506,7 @@ export interface Listing {
   // Step 4 — Spedizione
   city: string
   province: string
+  phone: string
   shippingAvailable: boolean
   packageSize: PackageSize | null
   shippingCost: number | null
