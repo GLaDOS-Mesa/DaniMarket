@@ -648,6 +648,97 @@ CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node
 
 ---
 
+## Integrazione eBay (Sprint eBay 1-3)
+
+Implementazione dell'integrazione reale con eBay tramite OAuth 2.0 e Inventory API v1. Tre sprint progressivi: collegamento account, pubblicazione annunci, sincronizzazione automatica.
+
+### Sprint eBay 1 — OAuth e Collegamento Account
+
+| Step | Contenuto |
+|------|-----------|
+| Env vars | Configurazione sandbox eBay in `.env` e `nuxt.config.ts` runtimeConfig |
+| Schema Prisma | Modello `EbayToken` con access/refresh token, scadenze, username |
+| Utility OAuth | `getConsentUrl`, `exchangeCodeForToken`, `refreshAccessToken`, `getValidAccessToken` |
+| API Routes | `auth.get` (avvia OAuth), `callback.get` (scambio token), `status.get`, `disconnect.post` |
+| Pagina Settings | Card eBay con stato collegato/scollegato, modale disconnessione, toast feedback |
+| Test | 20 test (10 utility OAuth + 10 API routes) |
+
+**Rework test esistenti**: durante l'aggiunta dei test eBay è emerso che tutti i 9 file di test pre-esistenti fallivano per un bug di Vitest 4 con `globals: true` — l'import esplicito `import { vi } from 'vitest'` confliggeva con i globals iniettati a runtime. Rimosso l'import da tutti i file e fixati mock obsoleti (`publications` → `platformPublications`, aggiunto mock `useApi`/`useToast`).
+
+### Sprint eBay 2 — Pubblicazione Annuncio
+
+| Step | Contenuto |
+|------|-----------|
+| Schema | Aggiunti `platformOfferId` (PlatformPublication) e `ebayLocationKey` (EbayToken) |
+| API Client | `ebay-api.ts` — HTTP client con auth automatica e header marketplace IT |
+| Mapping | `ebay-mapping.ts` — conversione condizione, categoria, aspects, inventory item, offer |
+| Setup venditore | Route verifica prerequisiti (policies, location) e creazione location default |
+| Pubblicazione | Route publish modificata: inventory item → offer → publish offer → salva IDs |
+| Rimozione | Route delete modificata: withdrawOffer prima della rimozione locale |
+| Test | 18 test per le funzioni di mapping |
+
+**Flusso pubblicazione eBay:**
+```
+1. Verifica prerequisiti (token, policies, location)
+2. Genera SKU: DM-{listingId}
+3. PUT /sell/inventory/v1/inventory_item/{sku}
+4. POST /sell/inventory/v1/offer → offerId
+5. POST /sell/inventory/v1/offer/{offerId}/publish → listingId
+6. Salva platformListingId, platformListingUrl, platformOfferId
+```
+
+### Sprint eBay 3 — Sincronizzazione
+
+| Step | Contenuto |
+|------|-----------|
+| Utility sync | `ebay-sync.ts` — `syncListingToEbay`, `withdrawFromEbay`, `markSoldOnEbay` |
+| PUT listing | Propaga modifiche su eBay dopo update locale (non-blocking) |
+| Sold/Draft | Ritira automaticamente da eBay quando venduto o riportato in bozza |
+| Delete | Ritira offer + elimina inventory item prima dell'eliminazione locale |
+| Route sync | `POST /platforms/EBAY/sync` — ritentare sincronizzazione manuale |
+| Frontend | Indicatori stato sync nella card piattaforma (link eBay, errore, ritenta, ripubblica) |
+
+### Architettura eBay
+
+```
+server/utils/
+├── ebay.ts         # OAuth (token management, consent URL, refresh)
+├── ebay-api.ts     # HTTP client (auth headers, marketplace, base URL)
+├── ebay-mapping.ts # Conversione dati DaniMarket → formato eBay
+└── ebay-sync.ts    # Propagazione modifiche e sincronizzazione
+
+server/api/ebay/
+├── auth.get.ts        # Avvia OAuth flow
+├── callback.get.ts    # Callback OAuth, salva token
+├── status.get.ts      # Stato collegamento
+├── disconnect.post.ts # Scollega account
+└── setup/
+    ├── status.get.ts   # Verifica prerequisiti venditore
+    └── location.post.ts # Crea location default
+```
+
+### Metriche Sprint eBay 1-3
+
+| Metrica | Valore |
+|---------|--------|
+| File nuovi | 14 |
+| File modificati | 12 |
+| Modelli Prisma nuovi | 1 (EbayToken) + 2 campi aggiunti |
+| Test nuovi | 38 (20 OAuth + 18 mapping) |
+| Migrazioni | 2 |
+| Commit | 16 |
+| Tempo totale | ~3 ore |
+
+### Lezioni Apprese (eBay Integration)
+
+1. **OAuth richiede HTTPS anche in sandbox**: per test locale serve un tunnel (ngrok) — in alternativa testare solo la struttura
+2. **Separazione responsabilità chiara**: OAuth vs HTTP client vs mapping vs sync — ogni file ha un ruolo preciso
+3. **Non-blocking sync**: le propagazioni su eBay non devono bloccare l'operazione locale — errori salvati nel DB per retry
+4. **Test obsoleti**: l'aggiunta di un branch platform-specific (eBay reale vs locale) ha rotto i test generici — meglio eliminarli subito quando il comportamento è destinato a cambiare
+5. **Vitest globals vs import**: con `globals: true` nel config, l'import esplicito da vitest causa crash — scoperto solo quando tutti i test giravano insieme
+
+---
+
 ## Riepilogo Complessivo
 
 | Fase | Tempo | Output |
@@ -659,9 +750,10 @@ CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node
 | Sprint 1-5 Backend (API) | ~2 ore | 14 endpoint REST + Docker + seed |
 | Sprint 8 (Frontend → API) | ~3 ore | Connessione reale + 5 bug fix + platform actions |
 | Sprint 9 (Deploy Railway) | ~2 ore | App live in produzione con DB + volume |
-| **Totale** | **~13.5 ore** | **Full-stack app in produzione** |
+| Sprint eBay 1-3 (Integrazione) | ~3 ore | OAuth + pubblicazione + sync eBay |
+| **Totale** | **~16.5 ore** | **Full-stack app con integrazione eBay** |
 
-**Stima sviluppo tradizionale**: 10-15 giorni developer senior
+**Stima sviluppo tradizionale**: 15-20 giorni developer senior
 
 **Fattore accelerazione**: ~7-10x
 
