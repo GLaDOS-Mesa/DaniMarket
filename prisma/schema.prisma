@@ -77,9 +77,26 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  listings Listing[]
+  listings  Listing[]
+  ebayToken EbayToken?
 
   @@map("users")
+}
+
+model EbayToken {
+  id                    String   @id @default(cuid())
+  userId                String   @unique @map("user_id")
+  accessToken           String   @map("access_token") @db.Text
+  accessTokenExpiresAt  DateTime @map("access_token_expires_at")
+  refreshToken          String   @map("refresh_token") @db.Text
+  refreshTokenExpiresAt DateTime @map("refresh_token_expires_at")
+  ebayUsername          String?  @map("ebay_username")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ebay_tokens")
 }
 
 model Listing {
