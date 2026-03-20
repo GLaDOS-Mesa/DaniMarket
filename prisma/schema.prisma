@@ -91,6 +91,7 @@ model EbayToken {
   refreshToken          String   @map("refresh_token") @db.Text
   refreshTokenExpiresAt DateTime @map("refresh_token_expires_at")
   ebayUsername          String?  @map("ebay_username")
+  ebayLocationKey       String?  @map("ebay_location_key")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
@@ -158,6 +159,7 @@ model PlatformPublication {
   status             PlatformPublicationStatus @default(DRAFT)
   platformListingId  String?                   @map("platform_listing_id")
   platformListingUrl String?                   @map("platform_listing_url")
+  platformOfferId    String?                   @map("platform_offer_id")
   publishedAt        DateTime?                 @map("published_at")
   lastError          String?                   @map("last_error")
   createdAt          DateTime                  @default(now()) @map("created_at")
