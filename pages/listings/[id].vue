@@ -139,7 +139,7 @@
           </div>
 
           <!-- Right column (1/3 width on desktop) -->
-          <div class="space-y-6">
+          <div class="space-y-6 lg:sticky lg:top-20 lg:self-start">
             <!-- Action Bar -->
             <ListingsDetailActionBar
               :status="listing.status"
