@@ -1,3 +1,5 @@
+import { markSoldOnEbay } from '~/server/utils/ebay-sync'
+
 defineRouteMeta({
   openAPI: {
     tags: ['Listing Actions'],
@@ -68,6 +70,14 @@ export default defineEventHandler(async (event) => {
         },
       })
     })
+
+    // Withdraw from eBay if published (non-blocking)
+    const ebayPub = listing.platformPublications.find(
+      (p) => p.platform === 'EBAY' && p.status === 'PUBLISHED'
+    )
+    if (ebayPub) {
+      markSoldOnEbay(id).catch(() => {})
+    }
 
     return successResponse(updated)
   } catch (error: any) {

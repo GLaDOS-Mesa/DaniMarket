@@ -1,5 +1,8 @@
 import { rm } from 'fs/promises'
 import { existsSync } from 'fs'
+import { withdrawFromEbay } from '~/server/utils/ebay-sync'
+import { ebayApiFetch } from '~/server/utils/ebay-api'
+import { DEV_USER_ID } from '~/server/utils/auth'
 
 defineRouteMeta({
   openAPI: {
@@ -26,6 +29,23 @@ export default defineEventHandler(async (event) => {
     const listing = await getOwnedListing(id)
     if (!listing) {
       return errorResponse(event, 'Annuncio non trovato', 404)
+    }
+
+    // Remove from eBay before deleting locally
+    const ebayPub = listing.platformPublications.find(
+      (p) => p.platform === 'EBAY' && p.status === 'PUBLISHED'
+    )
+    if (ebayPub) {
+      try {
+        await withdrawFromEbay(id)
+        const userId = await DEV_USER_ID()
+        const sku = `DM-${id}`
+        await ebayApiFetch(userId, `/sell/inventory/v1/inventory_item/${sku}`, {
+          method: 'DELETE',
+        })
+      } catch (e) {
+        console.error('Errore rimozione da eBay:', e)
+      }
     }
 
     // Delete photos folder from filesystem

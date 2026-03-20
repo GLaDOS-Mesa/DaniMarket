@@ -1,3 +1,5 @@
+import { syncListingToEbay } from '~/server/utils/ebay-sync'
+
 const VALID_CATEGORIES = [
   'CLOTHING', 'SHOES', 'ACCESSORIES', 'ELECTRONICS',
   'HOME', 'SPORTS', 'BOOKS_MEDIA', 'GAMES', 'OTHER',
@@ -199,6 +201,14 @@ export default defineEventHandler(async (event) => {
         },
       })
     })
+
+    // Propagate changes to eBay (non-blocking)
+    const hasEbayPublished = listing?.platformPublications?.some(
+      (p: any) => p.platform === 'EBAY' && p.status === 'PUBLISHED'
+    )
+    if (hasEbayPublished) {
+      syncListingToEbay(id).catch(() => {})
+    }
 
     return successResponse(listing)
   } catch (error: any) {
