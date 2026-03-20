@@ -32,6 +32,12 @@ export default defineNuxtConfig({
     cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+    ebayClientId: process.env.EBAY_CLIENT_ID,
+    ebayClientSecret: process.env.EBAY_CLIENT_SECRET,
+    ebayRedirectUri: process.env.EBAY_REDIRECT_URI,
+    ebayEnv: process.env.EBAY_ENV,
+    ebayApiUrl: process.env.EBAY_API_URL,
+    ebayAuthUrl: process.env.EBAY_AUTH_URL,
     // Public (exposed to client)
     public: {
       appName: 'DaniMarket',
