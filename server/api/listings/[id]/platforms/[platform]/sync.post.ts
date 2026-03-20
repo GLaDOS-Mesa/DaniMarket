@@ -3,8 +3,14 @@ import { syncListingToEbay } from '~/server/utils/ebay-sync'
 export default defineEventHandler(async (event) => {
   try {
     const id = getRouterParam(event, 'id')
-    if (!id) {
-      return errorResponse(event, 'ID annuncio mancante', 400)
+    const platform = getRouterParam(event, 'platform')
+
+    if (!id || !platform) {
+      return errorResponse(event, 'ID annuncio o piattaforma mancante', 400)
+    }
+
+    if (platform !== 'EBAY') {
+      return errorResponse(event, 'Sincronizzazione supportata solo per eBay', 400)
     }
 
     const listing = await getOwnedListing(id)
