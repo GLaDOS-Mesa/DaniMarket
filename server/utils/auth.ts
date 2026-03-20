@@ -1,7 +1,14 @@
 // TODO: Replace with real authentication
-// Uses the seed user for development
+// Uses the first user found, or auto-creates a default one
 export const DEV_USER_ID = async () => {
   const user = await prisma.user.findFirst()
-  if (!user) throw new Error('Nessun utente trovato. Esegui il seed: npm run db:seed')
-  return user.id
+  if (user) return user.id
+
+  const created = await prisma.user.create({
+    data: {
+      email: 'dev@danimarket.local',
+      name: 'Utente',
+    },
+  })
+  return created.id
 }
